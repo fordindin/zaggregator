@@ -8,7 +8,7 @@ import time
 import zaggregator.utils as utils
 import zaggregator.tests
 
-class TestFuzzyMatching(unittest.TestCase):
+class TestFuzzyMatching(zaggregator.tests.TestCase):
 
     fuzzy_string_sets = ([
         "/usr/sbin/zabbix_agentd -c /etc/zabbix/zabbix_agentd.conf",
@@ -87,4 +87,4 @@ class TestFuzzyMatching(unittest.TestCase):
         myproc.terminate()
 
 if __name__ == '__main__':
-    unittest.main()
+    run_test_module_by_name(__file__)

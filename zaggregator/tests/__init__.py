@@ -49,6 +49,19 @@ def bunch_proto(name="", israndom=False):
     sleeptime = 5.0
     return Process(target=process_proto_parent, args=(name, sleeptime, israndom))
 
-if __name__ == '__main__':
-    from .test_utils import *
-    unittest.main()
+def run_suite():
+    _setup_tests()
+    result = unittest.TextTestRunner(verbosity=VERBOSITY).run(get_suite())
+    success = result.wasSuccessful()
+    sys.exit(0 if success else 1)
+
+def run_test_module_by_name(name):
+    # testmodules = [os.path.splitext(x)[0] for x in os.listdir(HERE)
+    #                if x.endswith('.py') and x.startswith('test_')]
+    _setup_tests()
+    name = os.path.splitext(os.path.basename(name))[0]
+    suite = unittest.TestSuite()
+    suite.addTest(unittest.defaultTestLoader.loadTestsFromName(name))
+    result = unittest.TextTestRunner(verbosity=VERBOSITY).run(suite)
+    success = result.wasSuccessful()
+    sys.exit(0 if success else 1)

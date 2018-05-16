@@ -9,11 +9,10 @@ import random, string
 
 from zaggregator import tests
 
-class TestProcBundle(unittest.TestCase):
+class TestProcBundle(tests.TestCase):
 
     def test_ProcessBundle(self):
         pass
 
-
 if __name__ == '__main__':
-    unittest.main()
+    run_test_module_by_name(__file__)
