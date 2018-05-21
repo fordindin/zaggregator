@@ -28,26 +28,34 @@ LOGFILE="test.log"
 log.basicConfig(filename=LOGFILE, level=log.DEBUG)
 print("Unittest log stored at {}".format(os.path.realpath(LOGFILE)))
 
-def bunch_proto(name="", israndom=False):
-    def name_or_random(i, name, israndom):
-        oname = name
-        if israndom:
-            oname = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(8))
-        return "{}: child#{!s}".format(oname, i)
+class BunchProto:
 
+    sleeptime = 5.0
+
+    def __init__(self, name="", israndom=False):
+        self.name = name
+        self.israndom = israndom
+        self.master = Process(target=self.process_proto_parent)
+
+    def name_or_random(self, i):
+        name = self.name
+        if self.israndom:
+            name = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(8))
+        return "{}: child#{!s}".format(name, i)
+
+    @staticmethod
     def process_proto(name, sleeptime):
         import setproctitle
         setproctitle.setproctitle(name)
-        time.sleep(sleeptime)
+        time.sleep(BunchProto.sleeptime)
 
-    def process_proto_parent(name, sleeptime, israndom):
+    def process_proto_parent(self):
         import setproctitle
-        setproctitle.setproctitle("{}: master".format(name))
-        pcs = [ Process(target=process_proto, args=(name_or_random(i, name, israndom), sleeptime)) for i in range(5) ]
-        [ p.start() for p in pcs ]
+        setproctitle.setproctitle("{}: master".format(self.name))
+        self.pcs = [ Process(target=BunchProto.process_proto,
+            args=(self.name_or_random(i), self.sleeptime)) for i in range(5) ]
+        [ p.start() for p in self.pcs ]
 
-    sleeptime = 5.0
-    return Process(target=process_proto_parent, args=(name, sleeptime, israndom))
 
 def run_suite():
     _setup_tests()

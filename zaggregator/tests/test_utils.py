@@ -71,7 +71,8 @@ class TestFuzzyMatching(zaggregator.tests.TestCase):
         self.assertTrue(r == r1)
 
     def test_is_proc_group_parent(self):
-        myproc = zaggregator.tests.bunch_proto("unittest")
+        bunch = zaggregator.tests.BunchProto("unittest")
+        myproc = bunch.master
         myproc.start()
         time.sleep(0.1) # give process a moment to set it's title properly
         psutilproc = psutil.Process(pid=myproc.pid)
@@ -79,7 +80,8 @@ class TestFuzzyMatching(zaggregator.tests.TestCase):
         myproc.terminate()
 
     def test_proc_is_not_group_parent(self):
-        myproc = zaggregator.tests.bunch_proto("unittest", israndom=True)
+        bunch = zaggregator.tests.BunchProto("unittest", israndom=True)
+        myproc = bunch.master
         myproc.start()
         time.sleep(0.1) # give process a moment to set it's title properly
         psutilproc = psutil.Process(pid=myproc.pid)

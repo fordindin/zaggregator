@@ -2,7 +2,7 @@
 
 from difflib import SequenceMatcher
 from fuzzywuzzy import fuzz, StringMatcher
-import psutil
+import os
 import logging as log
 
 def reduce_sequence(seq):
@@ -40,10 +40,14 @@ def fuzzy_sequence_match(seq):
     return True
 
 def is_proc_group_parent(proc):
-    procs_names = [ p.name() for p in proc.children() ]
+    if os.uname().sysname == 'Darwin':
+        procs_names = [ p.cmdline()[0] for p in proc.children() ]
+        procs_names.append(proc.cmdline()[0])
+    else:
+        procs_names = [ p.name() for p in proc.children() ]
+        procs_names.append(proc.name())
     if len(procs_names) <= 1:
         return False
-    procs_names.append(proc.name())
     if fuzzy_sequence_match(procs_names):
         return True
     return False
