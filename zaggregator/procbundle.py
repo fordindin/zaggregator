@@ -12,8 +12,14 @@ class ProcBundle:
         self.leader = proc
         self.proclist = [proc]
         self.proclist.extend(proc.children())
+        names = []
         if os.uname().sysname == 'Darwin':
-            names = [ p.cmdline()[0] for p in  self.proclist ]
+            for p in self.proclist:
+                try:
+                    names.append(p.cmdline()[0])
+                except (psutil._exceptions.AccessDenied, IndexError,
+                        psutil.ProcessLookupError, psutil.AccessDenied):
+                    pass
         else:
             names = [ p.name() for p in  self.proclist ]
         self.bundle_name = utils.reduce_sequence(names)

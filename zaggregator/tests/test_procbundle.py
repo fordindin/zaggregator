@@ -20,9 +20,11 @@ class TestProcBundle(tests.TestCase):
     def test_ProcTable_procsort(self):
         try:
             table = ProcTable()
+            print(table.bundled())
         except psutil._exceptions.AccessDenied as e:
             logging.error(e)
             logging.error("Some tests require root priveleges")
+            raise e
 
 if __name__ == '__main__':
     run_test_module_by_name(__file__)
