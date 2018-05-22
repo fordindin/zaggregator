@@ -23,17 +23,45 @@ class ProcBundle:
         else:
             names = [ p.name() for p in  self.proclist ]
         self.bundle_name = utils.reduce_sequence(names)
+        self._collect_chain()
+
+    def _collect_chain(self):
+        """
+            private method, shouldn't be used directly
+        """
+        proc = self.leader
         while utils.parent_has_single_child(proc):
             proc = proc.parent()
-            self.proclist.append(proc)
+            if not utils.is_kernel_thread(proc):
+                self.proclist.append(proc)
+
+    def __str__(self):
+        return "<{} name={} object at {:#x}>".format(self.__class__, self.bundle_name, hash(self))
+
+class LeafBundle(ProcBundle):
+    def __init__(self, proc):
+        self.leader = proc
+        self.proclist = [ proc ]
+        self.bundle_name = proc.name()
+        self._collect_chain()
 
 class ProcTable:
     def __init__(self):
         self.bundles = []
         for proc in psutil.process_iter():
-            with proc.oneshot():
-                if utils.is_proc_group_parent(proc) and (proc not in self.bundled()):
-                    self.bundles.append(ProcBundle(proc))
+            # ignore kernel processes
+            if utils.is_kernel_thread(proc): continue
+
+            # collect bundleable processes
+            if utils.is_proc_group_parent(proc) and (proc not in self.bundled()):
+                self.bundles.append(ProcBundle(proc))
+                continue
+
+            # collect leaf process chains
+            if utils.is_leaf_process(proc):
+                self.bundles.append(LeafBundle(proc))
+
+
 
 
     def bundled(self) -> list:
