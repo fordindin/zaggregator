@@ -2,27 +2,39 @@
 
 import psutil
 import logging
+import os
 import zaggregator.utils as utils
 
 class ProcBundle:
     def __init__(self, proc):
         """ new ProcBundle from the process
         """
+        self.leader = proc
         self.proclist = [proc]
         self.proclist.extend(proc.children())
-        self.bundle_name = "" # wil be overwritten later
-
-    def similar_to(self, proc):
-        pass
+        if os.uname().sysname == 'Darwin':
+            names = [ p.cmdline()[0] for p in  self.proclist ]
+        else:
+            names = [ p.name() for p in  self.proclist ]
+        self.bundle_name = utils.reduce_sequence(names)
+        while utils.parent_has_single_child(proc):
+            proc = proc.parent()
+            self.proclist.append(proc)
 
 class ProcTable:
     def __init__(self):
         self.bundles = []
         for proc in psutil.process_iter():
             with proc.oneshot():
-                if utils.is_proc_group_parent(proc):
+                if utils.is_proc_group_parent(proc) and (proc not in self.bundled()):
                     self.bundles.append(ProcBundle(proc))
-        print(self.bundles)
+
+
+    def bundled(self) -> list:
+        ret = []
+        for b in self.bundles:
+            ret.extend(b.proclist)
+        return ret
 
         """
                 children_names = [ p.name() for p in proc.children() ]

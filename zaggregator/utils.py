@@ -22,7 +22,7 @@ def reduce_sequence(seq):
     while len(sp) > 1:
         sp = single_pass(sp)
 
-    return sp[0]
+    return sp[0].strip("[]:- ")
 
 def fuzzy_match(a,b):
     score = fuzz.partial_ratio(a,b)
@@ -41,7 +41,8 @@ def fuzzy_sequence_match(seq):
 
 def is_proc_group_parent(proc):
     if os.uname().sysname == 'Darwin':
-        procs_names = [ p.cmdline()[0] for p in proc.children() ]
+        fproc_names = filter(lambda x: len(x.cmdline()) > 0, proc.children())
+        procs_names = [ p.cmdline()[0] for p in fproc_names ]
         procs_names.append(proc.cmdline()[0])
     else:
         procs_names = [ p.name() for p in proc.children() ]
@@ -51,3 +52,6 @@ def is_proc_group_parent(proc):
     if fuzzy_sequence_match(procs_names):
         return True
     return False
+
+def parent_has_single_child(proc):
+    return len(proc.parent().children()) == 1

@@ -1,8 +1,8 @@
 import unittest
 import os
 import logging as log
-import logging as log
 import random
+import psutil
 import string
 import os, time
 from multiprocessing import Process
@@ -31,8 +31,11 @@ print("Unittest log stored at {}".format(os.path.realpath(LOGFILE)))
 class BunchProto:
 
     sleeptime = 5.0
+    ttime = 0.1
 
-    def __init__(self, name="", israndom=False):
+    def __init__(self, name="", israndom=False, nchildren=5, rstrlen=8):
+        self.nchildren = nchildren
+        self.rstrlen = rstrlen
         self.name = name
         self.israndom = israndom
         self.master = Process(target=self.process_proto_parent)
@@ -40,7 +43,8 @@ class BunchProto:
     def name_or_random(self, i):
         name = self.name
         if self.israndom:
-            name = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(8))
+            name = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in
+                    range(self.rstrlen))
         return "{}: child#{!s}".format(name, i)
 
     @staticmethod
@@ -53,9 +57,17 @@ class BunchProto:
         import setproctitle
         setproctitle.setproctitle("{}: master".format(self.name))
         self.pcs = [ Process(target=BunchProto.process_proto,
-            args=(self.name_or_random(i), self.sleeptime)) for i in range(5) ]
+            args=(self.name_or_random(i), self.sleeptime)) for i in range(self.nchildren) ]
         [ p.start() for p in self.pcs ]
 
+    @staticmethod
+    def start(name, israndom=False, nchildren=5, rstrlen=8 ):
+        bunch = BunchProto(name, israndom=israndom, nchildren=nchildren, rstrlen=rstrlen)
+        myproc = bunch.master
+        myproc.start()
+        time.sleep(BunchProto.ttime) # give process a moment to set it's title properly
+        psutilproc = psutil.Process(pid=myproc.pid)
+        return bunch,myproc,psutilproc
 
 def run_suite():
     _setup_tests()

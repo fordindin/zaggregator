@@ -4,11 +4,13 @@ import psutil
 import os, sys
 from multiprocessing import Process
 import time
+import random
 
 import zaggregator.utils as utils
-import zaggregator.tests
+import zaggregator.tests as tests
+from zaggregator.procbundle import ProcBundle
 
-class TestFuzzyMatching(zaggregator.tests.TestCase):
+class TestFuzzyMatching(tests.TestCase):
 
     fuzzy_string_sets = ([
         "/usr/sbin/zabbix_agentd -c /etc/zabbix/zabbix_agentd.conf",
@@ -65,28 +67,70 @@ class TestFuzzyMatching(zaggregator.tests.TestCase):
 
         r1 = [
             '/usr/sbin/zabbix_agentd',
-            'postgres:',
+            'postgres',
             'php-fpm: pool main']
 
         self.assertTrue(r == r1)
 
     def test_is_proc_group_parent(self):
-        bunch = zaggregator.tests.BunchProto("unittest")
-        myproc = bunch.master
-        myproc.start()
-        time.sleep(0.1) # give process a moment to set it's title properly
-        psutilproc = psutil.Process(pid=myproc.pid)
+        bname = "unittests"
+        bunch, myproc, psutilproc = tests.BunchProto.start(bname)
+
         self.assertTrue(utils.is_proc_group_parent(psutilproc))
+
         myproc.terminate()
 
     def test_proc_is_not_group_parent(self):
-        bunch = zaggregator.tests.BunchProto("unittest", israndom=True)
-        myproc = bunch.master
-        myproc.start()
-        time.sleep(0.1) # give process a moment to set it's title properly
-        psutilproc = psutil.Process(pid=myproc.pid)
+        bname = "unittests-np"
+        bunch, myproc, psutilproc = tests.BunchProto.start(bname, israndom=True)
+
         self.assertFalse(utils.is_proc_group_parent(psutilproc))
+
         myproc.terminate()
+
+    def test_parent_has_single_child(self):
+        bname = "unittest-sc"
+        bunch, myproc, psutilproc = tests.bunchproto.start(bname,
+                israndom=random.choice((true,false)), nchildren=1)
+
+        self.assertTrue(utils.parent_has_single_child(psutilproc.children()[0]))
+
+        myproc.terminate()
+
+    def test_parent_has_single_child(self):
+        bname = "unittest-nsc"
+        bunch, myproc, psutilproc = tests.BunchProto.start(bname,
+                israndom=random.choice((True,False)), nchildren=2)
+
+        self.assertFalse(utils.parent_has_single_child(psutilproc.children()[0]))
+
+        myproc.terminate()
+
+    def test_parent_has_single_child_false(self):
+        bname = "unittest-nscf"
+        bunch, myproc, psutilproc = tests.BunchProto.start(bname,
+                israndom=random.choice((True,False)), nchildren=1)
+
+        self.assertTrue(utils.parent_has_single_child(psutilproc.children()[0]))
+
+        myproc.terminate()
+
+    def test_parent_has_single_child_init(self):
+        # by init I meant any top-level process, it could be systemd, launchctl and so on
+        psutilproc = random.choice(psutil.Process(pid=1).children())
+        self.assertFalse(utils.parent_has_single_child(psutilproc))
+
+    def test_parent_has_single_child_chain(self):
+        bname = "unittest-ch"
+        nproc = random.choice([i for i in range(2,10)])
+        bunch, myproc, psutilproc = tests.BunchProto.start(bname, nchildren=nproc)
+
+        bundle = ProcBundle(psutilproc)
+        self.assertTrue(len(bundle.proclist)+1 > nproc)
+
+        myproc.terminate()
+
+
 
 if __name__ == '__main__':
     run_test_module_by_name(__file__)
