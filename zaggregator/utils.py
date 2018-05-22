@@ -55,3 +55,13 @@ def is_proc_group_parent(proc):
 
 def parent_has_single_child(proc):
     return len(proc.parent().children()) == 1
+
+def is_kernel_thread(proc):
+    if len(proc.cmdline()) == 0:
+        return True
+    return False
+
+def is_leaf_process(proc):
+    if len(proc.children()) == 0 and len(proc.parent().children()) == 1:
+            return True
+    return False

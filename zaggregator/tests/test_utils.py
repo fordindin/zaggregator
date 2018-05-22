@@ -130,7 +130,35 @@ class TestFuzzyMatching(tests.TestCase):
 
         myproc.terminate()
 
+    def test_is_kernel_thread_false(self):
+        bname = "unittest-kth"
+        bunch, myproc, psutilproc = tests.BunchProto.start(bname,
+                israndom=random.choice((True,False)), nchildren=1)
 
+        self.assertFalse(utils.is_kernel_thread(psutilproc))
+
+        myproc.terminate()
+
+    def test_is_kernel_thread_true(self):
+        psutilproc = psutil.Process(pid=2)
+        self.assertTrue(utils.is_kernel_thread(psutilproc))
+
+    def test_is_leaf_process_true(self):
+        bname = "unittest-lpt"
+        bunch, myproc, psutilproc = tests.BunchProto.start(bname,
+                israndom=random.choice((True,False)), nchildren=1)
+
+        self.assertTrue(utils.is_leaf_process(psutilproc.children()[0]))
+        myproc.terminate()
+
+    def test_is_leaf_process_false(self):
+        bname = "unittest-lpf"
+        bunch, myproc, psutilproc = tests.BunchProto.start(bname,
+                israndom=random.choice((True,False)), nchildren=2)
+
+        self.assertFalse(utils.is_leaf_process(psutilproc))
+        self.assertFalse(utils.is_leaf_process(psutilproc.children()[0]))
+        myproc.terminate()
 
 if __name__ == '__main__':
     run_test_module_by_name(__file__)
