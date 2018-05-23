@@ -5,7 +5,9 @@ from fuzzywuzzy import fuzz, StringMatcher
 import os
 import logging as log
 
-def reduce_sequence(seq):
+DEFAULT_FUZZY_THRESHOLD = 53
+
+def reduce_sequence(seq) -> list:
     def single_pass(iseq):
         matches = []
         fuzzy_strings = iseq
@@ -24,22 +26,22 @@ def reduce_sequence(seq):
 
     return sp[0].strip("[]:- ")
 
-def fuzzy_match(a,b):
+def fuzzy_match(a, b, threshold=DEFAULT_FUZZY_THRESHOLD) -> bool:
     score = fuzz.partial_ratio(a,b)
     log.debug("Fuzzy score: {} ({},{})".format(score, a, b))
-    if score > 53:
+    if score > threshold:
         return True
     else:
         return False
 
-def fuzzy_sequence_match(seq):
+def fuzzy_sequence_match(seq) -> bool:
     for i in range(len(seq)-1):
         match = fuzzy_match(seq[i],seq[i+1])
         if not match:
             return False
     return True
 
-def is_proc_group_parent(proc):
+def is_proc_group_parent(proc) -> bool:
     if os.uname().sysname == 'Darwin':
         fproc_names = filter(lambda x: len(x.cmdline()) > 0, proc.children())
         procs_names = [ p.cmdline()[0] for p in fproc_names ]
@@ -53,15 +55,24 @@ def is_proc_group_parent(proc):
         return True
     return False
 
-def parent_has_single_child(proc):
+def parent_has_single_child(proc) -> bool:
     return len(proc.parent().children()) == 1
 
-def is_kernel_thread(proc):
+def is_kernel_thread(proc) -> bool:
     if len(proc.cmdline()) == 0:
         return True
     return False
 
-def is_leaf_process(proc):
+def is_leaf_process(proc) -> bool:
     if len(proc.children()) == 0 and len(proc.parent().children()) == 1:
             return True
+    return False
+
+def is_proc_in_bundle(proc, bundle) -> bool:
+    return (proc in bundle.proclist)
+
+def is_proc_similar_to(proc1, proc2) -> bool:
+    if fuzzy_match(proc1.cmdline(),proc2.cmdline(), threshold=90) \
+            and proc1.cwd() == proc2.cwd():
+                return True
     return False

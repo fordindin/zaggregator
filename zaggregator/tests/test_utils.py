@@ -78,7 +78,7 @@ class TestFuzzyMatching(tests.TestCase):
 
         self.assertTrue(utils.is_proc_group_parent(psutilproc))
 
-        myproc.terminate()
+        bunch.stop()
 
     def test_proc_is_not_group_parent(self):
         bname = "unittests-np"
@@ -86,7 +86,7 @@ class TestFuzzyMatching(tests.TestCase):
 
         self.assertFalse(utils.is_proc_group_parent(psutilproc))
 
-        myproc.terminate()
+        bunch.stop()
 
     def test_parent_has_single_child(self):
         bname = "unittest-sc"
@@ -95,7 +95,7 @@ class TestFuzzyMatching(tests.TestCase):
 
         self.assertTrue(utils.parent_has_single_child(psutilproc.children()[0]))
 
-        myproc.terminate()
+        bunch.stop()
 
     def test_parent_has_single_child(self):
         bname = "unittest-nsc"
@@ -104,7 +104,7 @@ class TestFuzzyMatching(tests.TestCase):
 
         self.assertFalse(utils.parent_has_single_child(psutilproc.children()[0]))
 
-        myproc.terminate()
+        bunch.stop()
 
     def test_parent_has_single_child_false(self):
         bname = "unittest-nscf"
@@ -113,7 +113,7 @@ class TestFuzzyMatching(tests.TestCase):
 
         self.assertTrue(utils.parent_has_single_child(psutilproc.children()[0]))
 
-        myproc.terminate()
+        bunch.stop()
 
     def test_parent_has_single_child_init(self):
         # by init I meant any top-level process, it could be systemd, launchctl and so on
@@ -128,7 +128,7 @@ class TestFuzzyMatching(tests.TestCase):
         bundle = ProcBundle(psutilproc)
         self.assertTrue(len(bundle.proclist)+1 > nproc)
 
-        myproc.terminate()
+        bunch.stop()
 
     def test_is_kernel_thread_false(self):
         bname = "unittest-kth"
@@ -137,7 +137,7 @@ class TestFuzzyMatching(tests.TestCase):
 
         self.assertFalse(utils.is_kernel_thread(psutilproc))
 
-        myproc.terminate()
+        bunch.stop()
 
     def test_is_kernel_thread_true(self):
         psutilproc = psutil.Process(pid=2)
@@ -149,7 +149,8 @@ class TestFuzzyMatching(tests.TestCase):
                 israndom=random.choice((True,False)), nchildren=1)
 
         self.assertTrue(utils.is_leaf_process(psutilproc.children()[0]))
-        myproc.terminate()
+
+        bunch.stop()
 
     def test_is_leaf_process_false(self):
         bname = "unittest-lpf"
@@ -158,7 +159,59 @@ class TestFuzzyMatching(tests.TestCase):
 
         self.assertFalse(utils.is_leaf_process(psutilproc))
         self.assertFalse(utils.is_leaf_process(psutilproc.children()[0]))
-        myproc.terminate()
+
+        bunch.stop()
+
+    def test_is_proc_in_bundle_false(self):
+        bname = 'unittest-ipib'
+        bunch, myproc, psutilproc = tests.BunchProto.start(bname)
+        bundle = ProcBundle(psutilproc)
+        proc = psutilproc.children()[0]
+
+        self.assertTrue(utils.is_proc_in_bundle(proc, bundle))
+
+        bunch.stop()
+
+    def test_is_proc_in_bundle(self):
+        bname = 'unittest-ipibf'
+        (bunch, myproc, psutilproc),(bunch2, myproc2, psutilproc2) = \
+                tests.BunchProto.start(bname),tests.BunchProto.start(bname)
+
+        bundle = ProcBundle(psutilproc)
+        proc = psutilproc.children()[0]
+
+        self.assertFalse(utils.is_proc_in_bundle(myproc2, bundle))
+
+        bunch.stop()
+        bunch2.stop()
+
+
+    def test_proc_similar_to(self):
+        bname = 'unittest-ipst'
+        bunch, myproc, psutilproc = tests.BunchProto.start(bname)
+        bundle = ProcBundle(psutilproc)
+
+        self.assertTrue(utils.is_proc_similar_to(*bundle.proclist[1:3]))
+
+        bunch.stop()
+
+    def test_proc_similar_to_f(self):
+        bname = 'unittest-ipstf'
+        bunch, myproc, psutilproc = tests.BunchProto.start(bname, israndom=True)
+        bundle = ProcBundle(psutilproc)
+
+        self.assertFalse(utils.is_proc_similar_to(*bundle.proclist[1:3]))
+
+        bunch.stop()
+
+    def test_proc_similar_to(self):
+        bname = 'unittest-ipst'
+        bunch, myproc, psutilproc = tests.BunchProto.start(bname)
+        bundle = ProcBundle(psutilproc)
+
+        self.assertTrue(utils.is_proc_similar_to(*bundle.proclist[1:3]))
+
+        bunch.stop()
 
 if __name__ == '__main__':
     run_test_module_by_name(__file__)

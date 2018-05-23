@@ -33,12 +33,13 @@ class BunchProto:
     sleeptime = 5.0
     ttime = 0.1
 
-    def __init__(self, name="", israndom=False, nchildren=5, rstrlen=8):
+    def __init__(self, name="defname", israndom=False, nchildren=5, rstrlen=8):
         self.nchildren = nchildren
         self.rstrlen = rstrlen
         self.name = name
         self.israndom = israndom
         self.master = Process(target=self.process_proto_parent)
+        self.psutilproc = None
 
     def name_or_random(self, i):
         name = self.name
@@ -67,7 +68,13 @@ class BunchProto:
         myproc.start()
         time.sleep(BunchProto.ttime) # give process a moment to set it's title properly
         psutilproc = psutil.Process(pid=myproc.pid)
+        bunch.psutilproc = psutilproc
         return bunch,myproc,psutilproc
+
+    def stop(self):
+        [ p.terminate() for p in psutil.Process(pid=self.master.pid).children() ]
+        self.master.terminate()
+
 
 def run_suite():
     _setup_tests()

@@ -9,22 +9,55 @@ import zaggregator.tests as tests
 
 class TestProcBundle(tests.TestCase):
     def test_ProcessBundle_name(self):
-        bname = 'unittest-procbundle'
+        bname = 'unittest-pb'
         bunch, myproc, psutilproc = tests.BunchProto.start(bname)
 
         bundle = ProcBundle(psutilproc)
         self.assertTrue(bundle.bundle_name == bname)
 
-        myproc.terminate()
+        bunch.stop()
 
+    # TODO: implement procsort check
     def test_ProcTable_procsort(self):
         try:
             table = ProcTable()
-            print(table.bundled())
+            for b in table.bundles:
+                print("\n{} {}: {}".format(b.bundle_name, b.__class__.__name__, b.proclist))
+            print(len(table.bundles))
         except psutil._exceptions.AccessDenied as e:
             logging.error(e)
             logging.error("Some tests require root priveleges")
-            raise e
+
+
+    def test_ProcBundle_append(self):
+        bname = 'unittest-pba'
+        (bunch, myproc, psutilproc),(bunch2, myproc2, psutilproc2) = \
+            tests.BunchProto.start(bname),tests.BunchProto.start(bname)
+
+        bundle,bundle2 = ProcBundle(psutilproc),ProcBundle(psutilproc2)
+        bundle = bundle.append(bundle2.proclist[1])
+
+        self.assertTrue(utils.is_proc_in_bundle(bundle2.proclist[1], bundle))
+
+        bunch.stop()
+        bunch2.stop()
+
+    def test_ProcBundle_merge(self):
+        bname = 'unittest-pbm'
+        ((bunch1, myproc1, psutilproc1),(bunch2, myproc2, psutilproc2), (bunch3, myproc3, psutilproc3)) = (tests.BunchProto.start(bname),
+                tests.BunchProto.start(bname),
+                tests.BunchProto.start(bname))
+
+        bundle1,bundle2,bundle3 = ProcBundle(psutilproc1),ProcBundle(psutilproc2),ProcBundle(psutilproc3)
+        bundle1 = bundle1.merge([bundle2,bundle3])
+
+        self.assertTrue(utils.is_proc_in_bundle(bundle2.proclist[1], bundle1))
+        self.assertTrue(bundle2.leader[0] in  bundle2.leader)
+
+        bunch1.stop()
+        bunch2.stop()
+        bunch3.stop()
+
 
 if __name__ == '__main__':
     run_test_module_by_name(__file__)

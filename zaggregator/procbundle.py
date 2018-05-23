@@ -9,8 +9,8 @@ class ProcBundle:
     def __init__(self, proc):
         """ new ProcBundle from the process
         """
-        self.leader = proc
-        self.proclist = [proc]
+        self.leader = [ proc ]
+        self.proclist = [ proc ]
         self.proclist.extend(proc.children())
         names = []
         if os.uname().sysname == 'Darwin':
@@ -23,34 +23,72 @@ class ProcBundle:
         else:
             names = [ p.name() for p in  self.proclist ]
         self.bundle_name = utils.reduce_sequence(names)
+        if len(self.bundle_name) < 3:
+            self.bundle_name = "{}:{}".format(self.proclist[0].username(),names[0])
         self._collect_chain()
+
+    def append(self, proc):
+        self.proclist.append(proc)
+        return self
+
+    def merge(self, bundles):
+        for bundle in bundles:
+            self.proclist.extend(bundle.proclist)
+            self.leader.extend(bundle.leader)
+        return self
 
     def _collect_chain(self):
         """
             private method, shouldn't be used directly
         """
-        proc = self.leader
+        if not self.leader: return
+
+        proc = self.leader[-1]
+
         while utils.parent_has_single_child(proc):
             proc = proc.parent()
             if not utils.is_kernel_thread(proc):
                 self.proclist.append(proc)
 
     def __str__(self):
-        return "<{} name={} object at {:#x}>".format(self.__class__, self.bundle_name, hash(self))
+        return "{} name={} hash: {:#x}>".format(self.__class__, self.bundle_name, hash(self))
 
-class LeafBundle(ProcBundle):
+class SingleProcess(ProcBundle):
     def __init__(self, proc):
-        self.leader = proc
+        self.leader = [ proc ]
         self.proclist = [ proc ]
         self.bundle_name = proc.name()
+
+class LeafBundle(SingleProcess):
+    def __init__(self, proc):
+        super().__init__(proc)
         self._collect_chain()
+
+class ProcessGroup(ProcBundle):
+    def __init__(self, pgid, pidlist):
+        self.proclist = [ psutil.Process(pid=p) for p in pidlist ]
+        self.leader = []
+        if pgid == 0:
+            self.bundle_name = "kernel"
+        else:
+            self.leader = [psutil.Process(pid=pgid)]
+            self.bundle_name = self.leader[0].name()
+
 
 class ProcTable:
     def __init__(self):
         self.bundles = []
+
+        pid_gid_map = [ (os.getpgid(p.pid), p.pid) for p in psutil.process_iter() ]
+        groups = set([e[0] for e in pid_gid_map])
+        for g in groups:
+            pids = [ p[1] for p in filter(lambda x: x[0] == g, pid_gid_map) ]
+            if len(pids) > 1:
+                self.bundles.append(ProcessGroup(g, pids))
+
         for proc in psutil.process_iter():
-            # ignore kernel processes
-            if utils.is_kernel_thread(proc): continue
+            # do not process process groups
+            if proc in self.bundled(): continue
 
             # collect bundleable processes
             if utils.is_proc_group_parent(proc) and (proc not in self.bundled()):
@@ -60,8 +98,24 @@ class ProcTable:
             # collect leaf process chains
             if utils.is_leaf_process(proc):
                 self.bundles.append(LeafBundle(proc))
+                continue
 
+            # all non-categorized processes are SingleProcess
+            self.bundles.append(SingleProcess(proc))
 
+            # merge similar bundles
+
+            merged = []
+            for bundle in self.bundles:
+                if bundle in merged: continue
+                if bundle.bundle_name == 'kernel': continue
+                similar = [val for i,val in enumerate(self.bundles) if val.bundle_name==bundle.bundle_name]
+                # if there more than one bundle with same name
+                if len(similar) > 1:
+                    similar[0].merge(similar[1:])
+                    merged.extend(similar)
+            for b in merged:
+                self.bundles.remove(b)
 
 
     def bundled(self) -> list:
