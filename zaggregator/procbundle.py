@@ -117,12 +117,14 @@ class ProcTable:
             for b in merged:
                 self.bundles.remove(b)
 
-
     def bundled(self) -> list:
         ret = []
         for b in self.bundles:
             ret.extend(b.proclist)
         return ret
+
+    def get_bundle_names(self) -> list:
+        return [ b.bundle_name for b in self.bundles ]
 
         """
                 children_names = [ p.name() for p in proc.children() ]

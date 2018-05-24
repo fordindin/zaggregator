@@ -22,8 +22,16 @@ class TestProcBundle(tests.TestCase):
         try:
             table = ProcTable()
             for b in table.bundles:
-                print("\n{} {}: {}".format(b.bundle_name, b.__class__.__name__, b.proclist))
-            print(len(table.bundles))
+                logging.debug("\n{} {}: {}".format(b.bundle_name, b.__class__.__name__, b.proclist))
+        except psutil._exceptions.AccessDenied as e:
+            logging.error(e)
+            logging.error("Some tests require root priveleges")
+        logging.debug("Total number of bundles: {}".format(len(table.bundles)))
+
+    def test_ProcTable_get_bundle_names(self):
+        try:
+            table = ProcTable()
+            logging.debug("Bundle names: {}".format(table.get_bundle_names()))
         except psutil._exceptions.AccessDenied as e:
             logging.error(e)
             logging.error("Some tests require root priveleges")
