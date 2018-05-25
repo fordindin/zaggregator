@@ -66,6 +66,21 @@ class TestProcBundle(tests.TestCase):
         bunch2.stop()
         bunch3.stop()
 
+    def test_ProcBundle_stats(self):
+        bname = 'unittest-pb'
+        bunch, myproc, psutilproc = tests.BunchProto.start(bname)
+
+        bundle = ProcBundle(psutilproc)
+        self.assertIsInstance(bundle.get_n_connections(), int)
+        self.assertIsInstance((bundle.get_n_fds()), int)
+        self.assertIsInstance(bundle.get_n_open_files(), int)
+        self.assertIsInstance(bundle.get_n_ctx_switches_vol(), int)
+        self.assertIsInstance(bundle.get_n_ctx_switches_invol(), int)
+        self.assertIsInstance(bundle.get_memory_info_rss(), int)
+
+        bunch.stop()
+
+
 
 if __name__ == '__main__':
     run_test_module_by_name(__file__)

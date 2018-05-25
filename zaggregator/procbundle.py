@@ -50,8 +50,36 @@ class ProcBundle:
             if not utils.is_kernel_thread(proc):
                 self.proclist.append(proc)
 
+
     def __str__(self):
         return "{} name={} hash: {:#x}>".format(self.__class__, self.bundle_name, hash(self))
+
+    def get_n_connections(self) -> int:
+        return sum([len(p.connections()) for p in self.proclist])
+
+    def get_n_fds(self) -> int:
+        return sum([p.num_fds() for p in self.proclist])
+
+    def get_n_open_files(self) -> int:
+        return sum([len(p.open_files()) for p in self.proclist])
+
+    def get_n_ctx_switches_vol(self) -> int:
+        return sum([p.num_ctx_switches().voluntary for p in self.proclist])
+
+    def get_n_ctx_switches_invol(self) -> int:
+        return sum([p.num_ctx_switches().involuntary for p in self.proclist])
+
+    def get_memory_info_rss(self) -> int:
+        """
+            returns sum of resident memory sizes for process bundle (in KB)
+        """
+        return int(float(sum([ p.memory_info().rss for p in self.proclist ]))/8/1024)
+
+    def get_memory_info_vms(self) -> int:
+        """
+            returns sum of virtual memory sizes for process bundle (in KB)
+        """
+        return int(float(sum([ p.memory_info().vms for p in self.proclist ]))/8/1024)
 
 class SingleProcess(ProcBundle):
     def __init__(self, proc):
@@ -129,16 +157,11 @@ class ProcTable:
         """
                 children_names = [ p.name() for p in proc.children() ]
                 if proc.cmdline() and proc.cmdline()[0] == '/usr/sbin/zabbix_agentd':
-                    print(proc.cmdline())
                     print(proc.connections())
                     print(proc.num_fds())
                     print(proc.memory_info())
                     print(proc.cpu_percent())
-                    print(proc.create_time())
                     print(proc.open_files())
-                    print(proc.parent())
                     print(proc.num_ctx_switches())
-                    print(children_names)
-                    print(proc.cwd())
                     sys.exit(0)
                     """
