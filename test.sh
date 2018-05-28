@@ -1,12 +1,10 @@
 #!/bin/sh
 
-
-. ./venv/bin/activate
-
 set -eu
 
 dir=$(dirname $0)/
 cd $dir
+. ./venv/bin/activate
 
 SUDO=""
 set +u
