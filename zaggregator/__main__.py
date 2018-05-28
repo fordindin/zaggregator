@@ -4,7 +4,7 @@ import psutil
 import sys
 import logging
 from fuzzywuzzy import fuzz
-from zaggregator.procbundle import ProcTable
+from zaggregator.procbundle import ProcTable, EmptyBundle
 import json
 
 
@@ -13,7 +13,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 0:
         try:
             pt = ProcTable()
-        except zaggregator.procbundle.EmptyBundle:
+        except EmptyBundle:
             print("0.0")
             sys.exit(0)
         if sys.argv[1] == 'discovery':
