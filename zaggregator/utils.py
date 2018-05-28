@@ -6,6 +6,7 @@ import os
 import logging as log
 
 DEFAULT_FUZZY_THRESHOLD = 53
+class ProcessGone(Exception): pass
 
 def reduce_sequence(seq) -> list:
     def single_pass(iseq):
@@ -56,7 +57,11 @@ def is_proc_group_parent(proc) -> bool:
     return False
 
 def parent_has_single_child(proc) -> bool:
-    return len(proc.parent().children()) == 1
+    try:
+        return len(proc.parent().children()) == 1
+    except psutil.NoSuchProcess:
+        raise ProcessGone
+
 
 def is_kernel_thread(proc) -> bool:
     if len(proc.cmdline()) == 0:
@@ -64,9 +69,12 @@ def is_kernel_thread(proc) -> bool:
     return False
 
 def is_leaf_process(proc) -> bool:
-    if len(proc.children()) == 0 and len(proc.parent().children()) == 1:
-            return True
-    return False
+    try:
+        if len(proc.children()) == 0 and len(proc.parent().children()) == 1:
+                return True
+        return False
+    except psutil.NoSuchProcess:
+        raise ProcessGone
 
 def is_proc_in_bundle(proc, bundle) -> bool:
     return (proc in bundle.proclist)
