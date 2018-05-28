@@ -92,7 +92,7 @@ class ProcBundle:
         return int(float(sum([ p.memory_info().vms for p in self.proclist ]))/8/1024)
 
     def get_cpu_percent(self) -> float:
-        retval = float(sum([ p.cpu_percent(interval=0.2) for p in self.proclist ]))
+        retval = float(sum([ p.cpu_percent(interval=0.1) for p in self.proclist ]))
         if not retval:
             retval = float(0)
         return retval
