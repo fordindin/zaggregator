@@ -5,6 +5,8 @@ import logging
 import os
 import zaggregator.utils as utils
 
+class EmptyBundle(Exception): pass
+
 class ProcBundle:
     def __init__(self, proc):
         """ new ProcBundle from the process
@@ -106,8 +108,11 @@ class ProcessGroup(ProcBundle):
         if pgid == 0:
             self.bundle_name = "kernel"
         else:
-            self.leader = [psutil.Process(pid=sorted(pidlist)[0])]
-            self.bundle_name = self.leader[0].name()
+            if len(sorted(pidlist)) > 0:
+                self.leader = [psutil.Process(pid=sorted(pidlist)[0])]
+                self.bundle_name = self.leader[0].name()
+            else:
+                raise EmptyBundle
 
 
 class ProcTable:
