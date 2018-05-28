@@ -22,6 +22,7 @@ if __name__ == '__main__':
                 bundle = pt.get_bundle_by_name(sys.argv[1])
                 if not bundle:
                     print("0.0")
+                    sys.exit(0)
                 metrics = sys.argv[2]
                 if metrics == "nconn":
                     print(bundle.get_n_connections())
@@ -35,5 +36,5 @@ if __name__ == '__main__':
                     print(bundle.get_n_ctx_switches_invol())
                 if metrics == "memrss":
                     print(bundle.get_memory_info_rss())
-                if metrics == "(pcpu":
+                if metrics == "pcpu":
                     print(bundle.get_cpu_percent())
