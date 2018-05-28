@@ -7,7 +7,11 @@ import zaggregator.utils as utils
 
 class EmptyBundle(Exception): pass
 
+
 class ProcBundle:
+
+    _collect_chain_hook = lambda self: True
+
     def __init__(self, proc):
         """ new ProcBundle from the process
         """
@@ -43,14 +47,18 @@ class ProcBundle:
         """
             private method, shouldn't be used directly
         """
+        self._collect_chain_hook() # hook for test monkeypatching
         if not self.leader: return
 
         proc = self.leader[-1]
 
         while utils.parent_has_single_child(proc):
-            proc = proc.parent()
-            if not utils.is_kernel_thread(proc):
-                self.proclist.append(proc)
+            try:
+                proc = proc.parent()
+                if not utils.is_kernel_thread(proc):
+                    self.proclist.append(proc)
+            except psutil.NoSuchProcess:
+                raise ProcessGone
 
 
     def __str__(self):
