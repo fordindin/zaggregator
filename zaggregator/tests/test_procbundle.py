@@ -67,7 +67,7 @@ class TestProcBundle(tests.TestCase):
         bunch3.stop()
 
     def test_ProcBundle_stats(self):
-        bname = 'unittest-pb'
+        bname = 'unittest-pbs'
         bunch, myproc, psutilproc = tests.BunchProto.start(bname)
 
         bundle = ProcBundle(psutilproc)
@@ -77,6 +77,7 @@ class TestProcBundle(tests.TestCase):
         self.assertIsInstance(bundle.get_n_ctx_switches_vol(), int)
         self.assertIsInstance(bundle.get_n_ctx_switches_invol(), int)
         self.assertIsInstance(bundle.get_memory_info_rss(), int)
+        self.assertIsInstance(bundle.get_cpu_percent(), float)
 
         bunch.stop()
 

@@ -81,6 +81,9 @@ class ProcBundle:
         """
         return int(float(sum([ p.memory_info().vms for p in self.proclist ]))/8/1024)
 
+    def get_cpu_percent(self) -> float:
+        return float(sum([ p.cpu_percent(interval=0.2) for p in self.proclist ]))
+
 class SingleProcess(ProcBundle):
     def __init__(self, proc):
         self.leader = [ proc ]
@@ -154,14 +157,7 @@ class ProcTable:
     def get_bundle_names(self) -> list:
         return [ b.bundle_name for b in self.bundles ]
 
-        """
-                children_names = [ p.name() for p in proc.children() ]
-                if proc.cmdline() and proc.cmdline()[0] == '/usr/sbin/zabbix_agentd':
-                    print(proc.connections())
-                    print(proc.num_fds())
-                    print(proc.memory_info())
-                    print(proc.cpu_percent())
-                    print(proc.open_files())
-                    print(proc.num_ctx_switches())
-                    sys.exit(0)
-                    """
+    def get_bundle_by_name(self, name):
+        if name in self.get_bundle_names():
+            return list(filter(lambda x: x.bundle_name == name, self.bundles))[0]
+        return None
