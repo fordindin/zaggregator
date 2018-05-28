@@ -1,6 +1,6 @@
 #!/bin/sh
 
-
-. $(dirname $0)/venv/bin/activate
-python3 -m zaggregator $@
+BASE=$(dirname $0)
+. ${BASE}/venv/bin/activate
+cd ${BASE} && python3 -m zaggregator $@
 
