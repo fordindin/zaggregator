@@ -1,8 +1,9 @@
 import unittest
-from zaggregator.procbundle import ProcBundle, ProcTable
+from zaggregator.procbundle import ProcBundle, ProcTable, ProcessGroup
 import psutil
 import time
 import logging
+import random
 
 import zaggregator.utils as utils
 import zaggregator.tests as tests
@@ -78,6 +79,23 @@ class TestProcBundle(tests.TestCase):
         self.assertIsInstance(bundle.get_n_ctx_switches_invol(), int)
         self.assertIsInstance(bundle.get_memory_info_rss(), int)
         self.assertIsInstance(bundle.get_cpu_percent(), float)
+
+        bunch.stop()
+
+    def test_Procbundle_nopid(self):
+        bname = 'unittest-np'
+        bunch, myproc, psutilproc = tests.BunchProto.start(bname)
+
+        bundle = ProcBundle(psutilproc)
+        rpid = random.randint(0, 1024)
+        while psutil.pid_exists(rpid):
+            rpid = random.randint(0, 1024)
+        pidlist = [ p.pid for p in psutilproc.children() ]
+        pgid = psutilproc.pid
+        pidlist.append(rpid)
+
+        bundle = ProcessGroup(pgid, pidlist)
+        self.assertIsInstance(bundle, ProcessGroup)
 
         bunch.stop()
 

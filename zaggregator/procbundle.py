@@ -82,7 +82,10 @@ class ProcBundle:
         return int(float(sum([ p.memory_info().vms for p in self.proclist ]))/8/1024)
 
     def get_cpu_percent(self) -> float:
-        return float(sum([ p.cpu_percent(interval=0.2) for p in self.proclist ]))
+        retval = float(sum([ p.cpu_percent(interval=0.2) for p in self.proclist ]))
+        if not retval:
+            retval = float(0)
+        return retval
 
 class SingleProcess(ProcBundle):
     def __init__(self, proc):
@@ -97,6 +100,7 @@ class LeafBundle(SingleProcess):
 
 class ProcessGroup(ProcBundle):
     def __init__(self, pgid, pidlist):
+        pidlist = list(filter(lambda p: psutil.pid_exists(p), pidlist))
         self.proclist = [ psutil.Process(pid=p) for p in pidlist ]
         self.leader = []
         if pgid == 0:
