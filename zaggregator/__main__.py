@@ -38,3 +38,6 @@ if __name__ == '__main__':
                     print(bundle.get_memory_info_rss())
                 if metrics == "pcpu":
                     print(bundle.get_cpu_percent())
+            else:
+                print("0.0")
+                sys.exit(0)
