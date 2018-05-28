@@ -213,5 +213,20 @@ class TestFuzzyMatching(tests.TestCase):
 
         bunch.stop()
 
+    def test_ProcessGone_chain(self):
+        bname = "unittest-pgch"
+        bunch, myproc, psutilproc = tests.BunchProto.start(bname, nchildren=4)
+
+        def term(self):
+            self.leader[0].send_signal(9)
+        ProcBundle._collect_chain_hook = term
+        try:
+            bundle = ProcBundle(psutilproc)
+        except Exception():
+            print(e)
+        ProcBundle._collect_chain_hook = lambda self: True
+
+
+
 if __name__ == '__main__':
     run_test_module_by_name(__file__)
