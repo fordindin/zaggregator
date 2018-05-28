@@ -11,7 +11,11 @@ import json
 if __name__ == '__main__':
 
     if len(sys.argv) > 0:
-        pt = ProcTable()
+        try:
+            pt = ProcTable()
+        except zaggregator.procbundle.EmptyBundle:
+            print("0.0")
+            sys.exit(0)
         if sys.argv[1] == 'discovery':
             template = { "data" : [ ]}
             for bn in pt.get_bundle_names():
