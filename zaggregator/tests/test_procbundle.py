@@ -99,6 +99,11 @@ class TestProcBundle(tests.TestCase):
 
         bunch.stop()
 
+    def test_get_idle(self):
+        p = ProcTable()
+        print(p.get_idle())
+
+
 
 
 if __name__ == '__main__':

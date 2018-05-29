@@ -178,3 +178,6 @@ class ProcTable:
         if name in self.get_bundle_names():
             return list(filter(lambda x: x.bundle_name == name, self.bundles))[0]
         return None
+
+    def get_idle(self):
+        return psutil.cpu_times_percent(interval=1).idle

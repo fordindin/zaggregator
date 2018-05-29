@@ -20,7 +20,10 @@ if __name__ == '__main__':
             template = { "data" : [ ]}
             for bn in pt.get_bundle_names():
                 template["data"].append({ "{#PROCGROUP}": bn, })
+            template["data"].append({ "{#PROCGROUP}": 'idle', })
             print(json.dumps(template))
+        elif sys.argv[1] == 'idle' and sys.argv[2] == 'pcpu':
+            print(pt.get_idle())
         else:
             if sys.argv[1] in pt.get_bundle_names():
                 bundle = pt.get_bundle_by_name(sys.argv[1])
