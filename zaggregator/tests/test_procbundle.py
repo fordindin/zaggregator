@@ -4,6 +4,7 @@ import psutil
 import time
 import logging
 import random
+import inspect
 
 import zaggregator.utils as utils
 import zaggregator.tests as tests
@@ -20,6 +21,7 @@ class TestProcBundle(tests.TestCase):
 
     # TODO: implement procsort check
     def test_ProcTable_procsort(self):
+        logging.debug("======= %s ======" % inspect.stack()[0][3])
         try:
             table = ProcTable()
             for b in table.bundles:
@@ -30,6 +32,7 @@ class TestProcBundle(tests.TestCase):
         logging.debug("Total number of bundles: {}".format(len(table.bundles)))
 
     def test_ProcTable_get_bundle_names(self):
+        logging.debug("======= %s ======" % inspect.stack()[0][3])
         try:
             table = ProcTable()
             logging.debug("Bundle names: {}".format(table.get_bundle_names()))
@@ -39,6 +42,7 @@ class TestProcBundle(tests.TestCase):
 
 
     def test_ProcBundle_append(self):
+        logging.debug("======= %s ======" % inspect.stack()[0][3])
         bname = 'unittest-pba'
         (bunch, myproc, psutilproc),(bunch2, myproc2, psutilproc2) = \
             tests.BunchProto.start(bname),tests.BunchProto.start(bname)
@@ -52,13 +56,17 @@ class TestProcBundle(tests.TestCase):
         bunch2.stop()
 
     def test_ProcBundle_merge(self):
+        logging.debug("======= %s ======" % inspect.stack()[0][3])
         bname = 'unittest-pbm'
         ((bunch1, myproc1, psutilproc1),(bunch2, myproc2, psutilproc2), (bunch3, myproc3, psutilproc3)) = (tests.BunchProto.start(bname),
                 tests.BunchProto.start(bname),
                 tests.BunchProto.start(bname))
 
         bundle1,bundle2,bundle3 = ProcBundle(psutilproc1),ProcBundle(psutilproc2),ProcBundle(psutilproc3)
-        bundle1 = bundle1.merge([bundle2,bundle3])
+        logging.debug(len(bundle1.proclist))
+        bundle1.merge([bundle2,bundle3])
+        logging.debug(len(bundle1.proclist))
+
 
         self.assertTrue(utils.is_proc_in_bundle(bundle2.proclist[1], bundle1))
         self.assertTrue(bundle2.leader[0] in  bundle2.leader)
@@ -68,6 +76,7 @@ class TestProcBundle(tests.TestCase):
         bunch3.stop()
 
     def test_ProcBundle_stats(self):
+        logging.debug("======= %s ======" % inspect.stack()[0][3])
         bname = 'unittest-pbs'
         bunch, myproc, psutilproc = tests.BunchProto.start(bname)
 
@@ -83,6 +92,7 @@ class TestProcBundle(tests.TestCase):
         bunch.stop()
 
     def test_Procbundle_nopid(self):
+        logging.debug("======= %s ======" % inspect.stack()[0][3])
         bname = 'unittest-np'
         bunch, myproc, psutilproc = tests.BunchProto.start(bname)
 
@@ -100,8 +110,9 @@ class TestProcBundle(tests.TestCase):
         bunch.stop()
 
     def test_get_idle(self):
+        logging.debug("======= %s ======" % inspect.stack()[0][3])
         p = ProcTable()
-        print(p.get_idle())
+        self.assertIsInstance(p.get_idle(interval=0.1), float)
 
 
 

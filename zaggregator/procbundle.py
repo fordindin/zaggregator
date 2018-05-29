@@ -8,16 +8,37 @@ import zaggregator.utils as utils
 class EmptyBundle(Exception): pass
 
 
+class _BundleCache:
+    def __init__(self):
+        self.rss = self.vms = self.conns = self.fds = \
+                self.ofiles = self.ctx_vol = self.ctx_invol = 0
+        self.pcpu = 0.0
+
+    def add(self, proc):
+        with proc.oneshot():
+            if proc.is_running():
+                self.rss += proc.memory_info().rss
+                self.vms += proc.memory_info().vms
+                #self.conns += len(proc.connections())
+                self.fds += proc.num_fds()
+                #self.ofiles += len(proc.open_files())
+                self.ctx_vol += proc.num_ctx_switches().voluntary
+                self.ctx_invol += proc.num_ctx_switches().involuntary
+                self.pcpu += proc.cpu_percent(interval=0.01)
+
 class ProcBundle:
 
     _collect_chain_hook = lambda self: True
+    proclist = []
+    _cache = _BundleCache()
 
     def __init__(self, proc):
         """ new ProcBundle from the process
         """
         self.leader = [ proc ]
         self.proclist = [ proc ]
-        self.proclist.extend(proc.children())
+        self._chache.add(proc)
+        list(map(self._cache.add, proc.children()))
         names = []
         if os.uname().sysname == 'Darwin':
             for p in self.proclist:
@@ -35,11 +56,13 @@ class ProcBundle:
 
     def append(self, proc):
         self.proclist.append(proc)
+        self._cache.add(proc)
         return self
 
     def merge(self, bundles):
         for bundle in bundles:
-            self.proclist.extend(bundle.proclist)
+            #self.proclist.extend(bundle.proclist)
+            list(map(self.append, bundle.proclist))
             self.leader.extend(bundle.leader)
         return self
 
@@ -56,7 +79,7 @@ class ProcBundle:
             try:
                 proc = proc.parent()
                 if not utils.is_kernel_thread(proc):
-                    self.proclist.append(proc)
+                    self.append(proc)
             except psutil.NoSuchProcess:
                 raise ProcessGone
 
@@ -65,42 +88,51 @@ class ProcBundle:
         return "{} name={} hash: {:#x}>".format(self.__class__, self.bundle_name, hash(self))
 
     def get_n_connections(self) -> int:
-        return sum([len(p.connections()) for p in self.proclist])
+        return self._cache.conns
+        #return sum([len(p.connections()) for p in self.proclist])
 
     def get_n_fds(self) -> int:
-        return sum([p.num_fds() for p in self.proclist])
+        return self._cache.fds
+        #return sum([p.num_fds() for p in self.proclist])
 
     def get_n_open_files(self) -> int:
-        return sum([len(p.open_files()) for p in self.proclist])
+        return self._cache.ofiles
+        #return sum([len(p.open_files()) for p in self.proclist])
 
     def get_n_ctx_switches_vol(self) -> int:
-        return sum([p.num_ctx_switches().voluntary for p in self.proclist])
+        return self._cache.ctx_vol
+        #return sum([p.num_ctx_switches().voluntary for p in self.proclist])
 
     def get_n_ctx_switches_invol(self) -> int:
-        return sum([p.num_ctx_switches().involuntary for p in self.proclist])
+        return self._cache.ctx_invol
+        #return sum([p.num_ctx_switches().involuntary for p in self.proclist])
 
     def get_memory_info_rss(self) -> int:
         """
             returns sum of resident memory sizes for process bundle (in KB)
         """
-        return int(float(sum([ p.memory_info().rss for p in self.proclist ]))/8/1024)
+        return self._cache.rss
+        #print(int(float(sum([ p.memory_info().rss for p in self.proclist ]))/8/1024)
 
     def get_memory_info_vms(self) -> int:
         """
             returns sum of virtual memory sizes for process bundle (in KB)
         """
-        return int(float(sum([ p.memory_info().vms for p in self.proclist ]))/8/1024)
+        return self._cache.vms
+        #return int(float(sum([ p.memory_info().vms for p in self.proclist ]))/8/1024)
 
     def get_cpu_percent(self) -> float:
-        retval = float(sum([ p.cpu_percent(interval=0.1) for p in self.proclist ]))
-        if not retval:
-            retval = float(0)
-        return retval
+        #retval = float(sum([ p.cpu_percent(interval=0.1) for p in self.proclist ]))
+        #if not retval:
+        #    retval = float(0)
+        #return retval
+        return self._cache.pcpu
 
 class SingleProcess(ProcBundle):
     def __init__(self, proc):
         self.leader = [ proc ]
-        self.proclist = [ proc ]
+        self.append(proc)
+        #self.proclist = [ proc ]
         self.bundle_name = proc.name()
 
 class LeafBundle(SingleProcess):
@@ -111,7 +143,7 @@ class LeafBundle(SingleProcess):
 class ProcessGroup(ProcBundle):
     def __init__(self, pgid, pidlist):
         pidlist = list(filter(lambda p: psutil.pid_exists(p), pidlist))
-        self.proclist = [ psutil.Process(pid=p) for p in pidlist ]
+        list(map(self.append, [ psutil.Process(pid=p) for p in pidlist ]))
         self.leader = []
         if pgid == 0:
             self.bundle_name = "kernel"
@@ -179,5 +211,5 @@ class ProcTable:
             return list(filter(lambda x: x.bundle_name == name, self.bundles))[0]
         return None
 
-    def get_idle(self):
-        return psutil.cpu_times_percent(interval=1).idle
+    def get_idle(self, interval=1):
+        return psutil.cpu_times_percent(interval=interval).idle
