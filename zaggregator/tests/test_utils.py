@@ -215,18 +215,6 @@ class TestFuzzyMatching(tests.TestCase):
 
         bunch.stop()
 
-    """
-    def test_proc_similar_to_f(self):
-        logging.debug("======= %s ======" % inspect.stack()[0][3])
-        bname = 'unittest-ipstf'
-        bunch, myproc, psutilproc = tests.BunchProto.start(bname, israndom=True)
-        bundle = ProcBundle(psutilproc)
-
-        print(bundle.proclist[1:3])
-        self.assertFalse(utils.is_proc_similar_to(*bundle.proclist[1:3]))
-
-        bunch.stop()
-        """
 
     def test_proc_similar_to(self):
         logging.debug("======= %s ======" % inspect.stack()[0][3])

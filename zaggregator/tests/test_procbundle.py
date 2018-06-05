@@ -4,12 +4,12 @@ import time
 import logging
 import random
 import inspect
+import signal
 
 import zaggregator.utils as utils
 import zaggregator.tests as tests
 from zaggregator.procbundle import ProcBundle, ProcTable, ProcessGroup
-import zaggregator
-zaggregator.DEFAULT_INTERVAL=0.0
+from zaggregator.tests import cycle
 
 class TestProcBundle(tests.TestCase):
     def test_ProcessBundle_name(self):
@@ -117,6 +117,18 @@ class TestProcBundle(tests.TestCase):
         self.assertIsInstance(p.get_idle(interval=0.1), float)
 
 
+    def test_get_pcpu_busy(self):
+        logging.debug("======= %s ======" % inspect.stack()[0][3])
+
+        bname = "unittest-gpcpb"
+        bunch, myproc, psutilproc = tests.BunchProto.start(bname, nchildren=2, func=cycle)
+        p = ProcTable()
+        bundle = p.get_bundle_by_name("test.sh")
+        bundle.set_cpu_percent()
+        self.assertTrue(bundle.get_cpu_percent() > 90)
+        #print(bundle.get_cpu_percent())
+
+        bunch.stop()
 
 
 if __name__ == '__main__':

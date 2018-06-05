@@ -33,13 +33,14 @@ class BunchProto:
     sleeptime = 5.0
     ttime = 0.1
 
-    def __init__(self, name="defname", israndom=False, nchildren=5, rstrlen=8):
+    def __init__(self, name="defname", israndom=False, nchildren=5, rstrlen=8, func=None):
         self.nchildren = nchildren
         self.rstrlen = rstrlen
         self.name = name
         self.israndom = israndom
         self.master = Process(target=self.process_proto_parent)
         self.psutilproc = None
+        self.func = func
 
     def name_or_random(self, i):
         name = self.name
@@ -49,21 +50,42 @@ class BunchProto:
         return "{}: child#{!s}".format(name, i)
 
     @staticmethod
-    def process_proto(name, sleeptime):
+    def process_proto(name, sleeptime, func):
         import setproctitle
         setproctitle.setproctitle(name)
-        time.sleep(BunchProto.sleeptime)
+
+        if func or not sleeptime:
+            func()
+        else:
+            time.sleep(BunchProto.sleeptime)
 
     def process_proto_parent(self):
         import setproctitle
+        import signal
+        import sys
+
+        def sig_mitigator(signum, frame):
+            def _stop(p):
+                class fake_fd:
+                    def terminate(self):
+                        pass
+                if p._popen == None:
+                    p._popen = fake_fd()
+                p.terminate()
+            [ _stop(p) for p in self.pcs ]
+            sys.exit(0)
+
+        signal.signal(signal.SIGTERM, sig_mitigator)
+
         setproctitle.setproctitle("{}: master".format(self.name))
         self.pcs = [ Process(target=BunchProto.process_proto,
-            args=(self.name_or_random(i), self.sleeptime)) for i in range(self.nchildren) ]
+            args=(self.name_or_random(i), self.sleeptime, self.func)) for i in range(self.nchildren) ]
         [ p.start() for p in self.pcs ]
 
     @staticmethod
-    def start(name, israndom=False, nchildren=5, rstrlen=8 ):
-        bunch = BunchProto(name, israndom=israndom, nchildren=nchildren, rstrlen=rstrlen)
+    def start(name, israndom=False, nchildren=5, rstrlen=8, func=None ):
+        bunch = BunchProto(name, israndom=israndom, nchildren=nchildren, rstrlen=rstrlen,
+                func=func)
         myproc = bunch.master
         myproc.start()
         time.sleep(BunchProto.ttime) # give process a moment to set it's title properly
@@ -72,9 +94,26 @@ class BunchProto:
         return bunch,myproc,psutilproc
 
     def stop(self):
-        [ p.terminate() for p in psutil.Process(pid=self.master.pid).children() ]
-        self.master.terminate()
+        def _stop(p):
+            if p.is_running():
+                p.terminate()
+        [ _stop(p) for p in psutil.Process(pid=self.master.pid).children() ]
+        if psutil.Process(pid=self.master.pid).is_running():
+            self.master.terminate()
 
+def cycle():
+    # singleton, which does nothing, only consumes CPU
+    import signal
+    import sys
+
+    def sig_mitigator(signum, frame):
+        sys.exit(0)
+
+    # define and install custom SIGTERM handler
+    signal.signal(signal.SIGTERM, sig_mitigator)
+
+    while True:
+        pass
 
 def run_suite():
     _setup_tests()
@@ -91,4 +130,4 @@ def run_test_module_by_name(name):
     suite.addTest(unittest.defaultTestLoader.loadTestsFromName(name))
     result = unittest.TextTestRunner(verbosity=VERBOSITY).run(suite)
     success = result.wasSuccessful()
-    sys.exit(0 if success else 1)
+    ig_mitigatorys.exit(0 if success else 1)

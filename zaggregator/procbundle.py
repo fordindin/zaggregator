@@ -3,17 +3,22 @@
 import psutil
 import logging
 import os
+import time
 import zaggregator.utils as utils
+
+DEFAULT_INTERVAL  = 1.0
 
 class EmptyBundle(Exception): pass
 
-DEFAULT_INTERVAL=0.6
 
 class _BundleCache:
     def __init__(self):
         self.rss = self.vms = self.conns = self.fds = \
                 self.ofiles = self.ctx_vol = self.ctx_invol = 0
         self.pcpu = 0.0
+
+    def set_pcpu(self, value):
+        self.pcpu = value
 
     def add(self, proc):
         with proc.oneshot():
@@ -25,12 +30,10 @@ class _BundleCache:
                 self.ofiles += len(proc.open_files())
                 self.ctx_vol += proc.num_ctx_switches().voluntary
                 self.ctx_invol += proc.num_ctx_switches().involuntary
+                # cannot properly cache it
                 #self.pcpu += proc.cpu_percent(interval=DEFAULT_INTERVAL)
 
 class ProcBundle:
-
-
-
 
     def __init__(self, proc):
         """ new ProcBundle from the process
@@ -88,50 +91,48 @@ class ProcBundle:
             except psutil.NoSuchProcess:
                 raise ProcessGone
 
-
     def __str__(self):
         return "{} name={} hash: {:#x}>".format(self.__class__, self.bundle_name, hash(self))
 
     def get_n_connections(self) -> int:
         return self._cache.conns
-        #return sum([len(p.connections()) for p in self.proclist])
 
     def get_n_fds(self) -> int:
         return self._cache.fds
-        #return sum([p.num_fds() for p in self.proclist])
 
     def get_n_open_files(self) -> int:
         return self._cache.ofiles
-        #return sum([len(p.open_files()) for p in self.proclist])
 
     def get_n_ctx_switches_vol(self) -> int:
         return self._cache.ctx_vol
-        #return sum([p.num_ctx_switches().voluntary for p in self.proclist])
 
     def get_n_ctx_switches_invol(self) -> int:
         return self._cache.ctx_invol
-        #return sum([p.num_ctx_switches().involuntary for p in self.proclist])
 
     def get_memory_info_rss(self) -> int:
         """
             returns sum of resident memory sizes for process bundle (in KB)
         """
         return self._cache.rss
-        #print(int(float(sum([ p.memory_info().rss for p in self.proclist ]))/8/1024)
 
     def get_memory_info_vms(self) -> int:
         """
             returns sum of virtual memory sizes for process bundle (in KB)
         """
         return self._cache.vms
-        #return int(float(sum([ p.memory_info().vms for p in self.proclist ]))/8/1024)
 
     def get_cpu_percent(self) -> float:
-        #retval = float(sum([ p.cpu_percent(interval=0.1) for p in self.proclist ]))
-        #if not retval:
-        #    retval = float(0)
-        #return retval
         return self._cache.pcpu
+
+    def set_cpu_percent(self):
+        def f(p) -> float:
+            if p.is_running():
+                return p.cpu_percent()
+            return 0.0
+        [ f(p) for p in self.proclist ]
+        time.sleep(DEFAULT_INTERVAL)
+        times = [ f(p) for p in self.proclist ]
+        self._cache.pcpu = sum(times)
 
 class SingleProcess(ProcBundle):
     def __init__(self, proc):
@@ -167,6 +168,8 @@ class ProcTable:
         self.bundles = []
 
         pid_gid_map = [ (os.getpgid(p.pid), p.pid) for p in psutil.process_iter() ]
+        # first pass just to initialize timers
+        [ p.cpu_percent for p in psutil.process_iter() ]
         groups = set([e[0] for e in pid_gid_map])
         for g in groups:
             pids = [ p[1] for p in filter(lambda x: x[0] == g, pid_gid_map) ]

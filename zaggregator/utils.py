@@ -4,6 +4,7 @@ from difflib import SequenceMatcher
 from fuzzywuzzy import fuzz, StringMatcher
 import os
 import logging as log
+import psutil
 
 DEFAULT_FUZZY_THRESHOLD = 53
 class ProcessGone(Exception): pass
@@ -56,6 +57,8 @@ def is_proc_group_parent(proc) -> bool:
         return False
     if fuzzy_sequence_match(procs_names):
         return True
+    #if len(proc.children()) > 2 and proc.parent():
+    #    return True
     return False
 
 def parent_has_single_child(proc) -> bool:
