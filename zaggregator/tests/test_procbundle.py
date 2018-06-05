@@ -116,6 +116,14 @@ class TestProcBundle(tests.TestCase):
         p = ProcTable()
         self.assertIsInstance(p.get_idle(), float)
 
+        bname = "unittest-gi"
+        bunch, myproc, psutilproc = tests.BunchProto.start(bname, nchildren=2, func=cycle)
+        p = ProcTable()
+
+        self.assertTrue(p.get_idle() < 10.0)
+
+        bunch.stop()
+
     def test_get_pcpu_busy(self):
         logging.debug("======= %s ======" % inspect.stack()[0][3])
 

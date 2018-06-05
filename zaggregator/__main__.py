@@ -5,6 +5,7 @@ import sys
 import logging
 from fuzzywuzzy import fuzz
 from zaggregator.procbundle import ProcTable, EmptyBundle
+from zaggregator.utils import discovery_json
 import json
 
 
@@ -17,11 +18,7 @@ if __name__ == '__main__':
             print("0.0")
             sys.exit(0)
         if sys.argv[1] == 'discovery':
-            template = { "data" : [ ]}
-            for bn in pt.get_bundle_names():
-                template["data"].append({ "{#PROCGROUP}": bn, })
-            template["data"].append({ "{#PROCGROUP}": 'idle', })
-            print(json.dumps(template))
+            print(discovery_json(pt.get_bundle_names()))
         elif sys.argv[1] == 'idle' and sys.argv[2] == 'pcpu':
             print(pt.get_idle())
         else:

@@ -89,3 +89,10 @@ def is_proc_similar_to(proc1, proc2) -> bool:
             and proc1.cwd() == proc2.cwd():
                 return True
     return False
+
+def discovery_json(names):
+    template = { "data" : [ ]}
+    for bn in names:
+        template["data"].append({ "{#PROCGROUP}": bn, })
+    template["data"].append({ "{#PROCGROUP}": 'idle', })
+    return json.dumps(template)
