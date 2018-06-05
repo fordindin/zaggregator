@@ -9,6 +9,8 @@ DEFAULT_FUZZY_THRESHOLD = 53
 class ProcessGone(Exception): pass
 
 def reduce_sequence(seq) -> list:
+    if len(seq) == 1: return seq[0]
+
     def single_pass(iseq):
         matches = []
         fuzzy_strings = iseq

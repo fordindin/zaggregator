@@ -7,6 +7,7 @@ import zaggregator.utils as utils
 
 class EmptyBundle(Exception): pass
 
+DEFAULT_INTERVAL=0.6
 
 class _BundleCache:
     def __init__(self):
@@ -19,26 +20,25 @@ class _BundleCache:
             if proc.is_running():
                 self.rss += proc.memory_info().rss
                 self.vms += proc.memory_info().vms
-                #self.conns += len(proc.connections())
+                self.conns += len(proc.connections())
                 self.fds += proc.num_fds()
-                #self.ofiles += len(proc.open_files())
+                self.ofiles += len(proc.open_files())
                 self.ctx_vol += proc.num_ctx_switches().voluntary
                 self.ctx_invol += proc.num_ctx_switches().involuntary
-                self.pcpu += proc.cpu_percent(interval=0.01)
+                #self.pcpu += proc.cpu_percent(interval=DEFAULT_INTERVAL)
 
 class ProcBundle:
 
-    _collect_chain_hook = lambda self: True
-    proclist = []
-    _cache = _BundleCache()
+
+
 
     def __init__(self, proc):
         """ new ProcBundle from the process
         """
+        self._setup()
         self.leader = [ proc ]
-        self.proclist = [ proc ]
-        self._chache.add(proc)
-        list(map(self._cache.add, proc.children()))
+        self.append(proc)
+        list(map(self.append, proc.children()))
         names = []
         if os.uname().sysname == 'Darwin':
             for p in self.proclist:
@@ -53,6 +53,11 @@ class ProcBundle:
         if len(self.bundle_name) < 3:
             self.bundle_name = "{}:{}".format(self.proclist[0].username(),names[0])
         self._collect_chain()
+
+    def _setup(self):
+        self._collect_chain_hook = lambda x: True
+        self.proclist = []
+        self._cache = _BundleCache()
 
     def append(self, proc):
         self.proclist.append(proc)
@@ -70,7 +75,7 @@ class ProcBundle:
         """
             private method, shouldn't be used directly
         """
-        self._collect_chain_hook() # hook for test monkeypatching
+        self._collect_chain_hook(self) # hook for test monkeypatching
         if not self.leader: return
 
         proc = self.leader[-1]
@@ -130,6 +135,7 @@ class ProcBundle:
 
 class SingleProcess(ProcBundle):
     def __init__(self, proc):
+        self._setup()
         self.leader = [ proc ]
         self.append(proc)
         #self.proclist = [ proc ]
@@ -142,6 +148,7 @@ class LeafBundle(SingleProcess):
 
 class ProcessGroup(ProcBundle):
     def __init__(self, pgid, pidlist):
+        self._setup()
         pidlist = list(filter(lambda p: psutil.pid_exists(p), pidlist))
         list(map(self.append, [ psutil.Process(pid=p) for p in pidlist ]))
         self.leader = []
@@ -194,6 +201,7 @@ class ProcTable:
                 if len(similar) > 1:
                     similar[0].merge(similar[1:])
                     merged.extend(similar)
+
             for b in merged:
                 self.bundles.remove(b)
 

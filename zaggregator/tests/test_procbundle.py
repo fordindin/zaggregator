@@ -1,5 +1,4 @@
 import unittest
-from zaggregator.procbundle import ProcBundle, ProcTable, ProcessGroup
 import psutil
 import time
 import logging
@@ -8,6 +7,9 @@ import inspect
 
 import zaggregator.utils as utils
 import zaggregator.tests as tests
+from zaggregator.procbundle import ProcBundle, ProcTable, ProcessGroup
+import zaggregator
+zaggregator.DEFAULT_INTERVAL=0.0
 
 class TestProcBundle(tests.TestCase):
     def test_ProcessBundle_name(self):
