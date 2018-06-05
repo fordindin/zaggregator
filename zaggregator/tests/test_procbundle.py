@@ -114,8 +114,7 @@ class TestProcBundle(tests.TestCase):
     def test_get_idle(self):
         logging.debug("======= %s ======" % inspect.stack()[0][3])
         p = ProcTable()
-        self.assertIsInstance(p.get_idle(interval=0.1), float)
-
+        self.assertIsInstance(p.get_idle(), float)
 
     def test_get_pcpu_busy(self):
         logging.debug("======= %s ======" % inspect.stack()[0][3])

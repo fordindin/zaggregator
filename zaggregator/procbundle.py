@@ -222,5 +222,5 @@ class ProcTable:
             return list(filter(lambda x: x.bundle_name == name, self.bundles))[0]
         return None
 
-    def get_idle(self, interval=1):
+    def get_idle(self, interval=DEFAULT_INTERVAL):
         return psutil.cpu_times_percent(interval=interval).idle
