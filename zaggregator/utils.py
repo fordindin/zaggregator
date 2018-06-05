@@ -5,6 +5,7 @@ from fuzzywuzzy import fuzz, StringMatcher
 import os
 import logging as log
 import psutil
+import json
 
 DEFAULT_FUZZY_THRESHOLD = 53
 class ProcessGone(Exception): pass
