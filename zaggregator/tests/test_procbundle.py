@@ -125,8 +125,11 @@ class TestProcBundle(tests.TestCase):
         p = ProcTable()
         bundle = p.get_bundle_by_name("test.sh")
         bundle.set_cpu_percent()
-        self.assertTrue(bundle.get_cpu_percent() > 90)
-        #print(bundle.get_cpu_percent())
+        pcpu = bundle.get_cpu_percent()
+        pcpu_threshold = 75
+        if pcpu <= pcpu_threshold:
+            print("pcpu value: {}".format(pcpu))
+        self.assertTrue(pcpu > pcpu_threshold)
 
         bunch.stop()
 
