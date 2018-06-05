@@ -25,9 +25,9 @@ class _BundleCache:
             if proc.is_running():
                 self.rss += proc.memory_info().rss
                 self.vms += proc.memory_info().vms
-                self.conns += len(proc.connections())
-                self.fds += proc.num_fds()
-                self.ofiles += len(proc.open_files())
+                #self.conns += len(proc.connections())
+                #self.fds += proc.num_fds()
+                #self.ofiles += len(proc.open_files())
                 self.ctx_vol += proc.num_ctx_switches().voluntary
                 self.ctx_invol += proc.num_ctx_switches().involuntary
                 # cannot properly cache it

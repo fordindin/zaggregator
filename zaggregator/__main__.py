@@ -28,12 +28,12 @@ if __name__ == '__main__':
                     print("0.0")
                     sys.exit(0)
                 metrics = sys.argv[2]
-                if metrics == "nconn":
-                    print(bundle.get_n_connections())
-                if metrics == "nfd":
-                    print(bundle.get_n_fds())
-                if metrics == "nfile":
-                    print(bundle.get_n_open_files())
+                #if metrics == "nconn":
+                #    print(bundle.get_n_connections())
+                #if metrics == "nfd":
+                #    print(bundle.get_n_fds())
+                #if metrics == "nfile":
+                #    print(bundle.get_n_open_files())
                 if metrics == "ctxswvol":
                     print(bundle.get_n_ctx_switches_vol())
                 if metrics == "ctxswinvol":
