@@ -4,7 +4,9 @@ set -eu
 
 dir=$(dirname $0)/
 cd $dir
+set +eu
 . ./venv/bin/activate
+set -eu
 
 SUDO=""
 set +u
