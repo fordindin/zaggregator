@@ -6,7 +6,7 @@ import os
 import time
 import zaggregator.utils as utils
 
-DEFAULT_INTERVAL  = 1.0
+DEFAULT_INTERVAL  = 0.3
 
 class EmptyBundle(Exception): pass
 
@@ -89,7 +89,7 @@ class ProcBundle:
                 if not utils.is_kernel_thread(proc):
                     self.append(proc)
             except psutil.NoSuchProcess:
-                raise ProcessGone
+                raise utils.ProcessGone
 
     def __str__(self):
         return "{} name={} hash: {:#x}>".format(self.__class__, self.bundle_name, hash(self))
@@ -151,7 +151,11 @@ class ProcessGroup(ProcBundle):
     def __init__(self, pgid, pidlist):
         self._setup()
         pidlist = list(filter(lambda p: psutil.pid_exists(p), pidlist))
-        list(map(self.append, [ psutil.Process(pid=p) for p in pidlist ]))
+        def filter_dead_process(pid):
+            if psutil.pid_exists(pid):
+                return psutil.Process(pid=pid)
+            return None
+        list(map(self.append, filter(None, [ filter_dead_process(p) for p in pidlist ])))
         self.leader = []
         if pgid == 0:
             self.bundle_name = "kernel"
@@ -181,35 +185,38 @@ class ProcTable:
 
         for proc in psutil.process_iter():
             # do not process process groups
-            if proc in self.bundled(): continue
+            try:
+                if proc in self.bundled(): continue
 
-            # collect bundleable processes
-            if utils.is_proc_group_parent(proc) and (proc not in self.bundled()):
-                self.bundles.append(ProcBundle(proc))
+                # collect bundleable processes
+                if utils.is_proc_group_parent(proc) and (proc not in self.bundled()):
+                    self.bundles.append(ProcBundle(proc))
+                    continue
+
+                # collect leaf process chains
+                if utils.is_leaf_process(proc):
+                    self.bundles.append(LeafBundle(proc))
+                    continue
+
+                # all non-categorized processes are SingleProcess
+                self.bundles.append(SingleProcess(proc))
+
+                # merge similar bundles
+
+                merged = []
+                for bundle in self.bundles:
+                    if bundle in merged: continue
+                    if bundle.bundle_name == 'kernel': continue
+                    similar = [val for i,val in enumerate(self.bundles) if val.bundle_name==bundle.bundle_name]
+                    # if there more than one bundle with same name
+                    if len(similar) > 1:
+                        similar[0].merge(similar[1:])
+                        merged.extend(similar)
+
+                for b in merged:
+                    self.bundles.remove(b)
+            except (psutil.NoSuchProcess, utils.ProcessGone):
                 continue
-
-            # collect leaf process chains
-            if utils.is_leaf_process(proc):
-                self.bundles.append(LeafBundle(proc))
-                continue
-
-            # all non-categorized processes are SingleProcess
-            self.bundles.append(SingleProcess(proc))
-
-            # merge similar bundles
-
-            merged = []
-            for bundle in self.bundles:
-                if bundle in merged: continue
-                if bundle.bundle_name == 'kernel': continue
-                similar = [val for i,val in enumerate(self.bundles) if val.bundle_name==bundle.bundle_name]
-                # if there more than one bundle with same name
-                if len(similar) > 1:
-                    similar[0].merge(similar[1:])
-                    merged.extend(similar)
-
-            for b in merged:
-                self.bundles.remove(b)
 
     def bundled(self) -> list:
         ret = []
