@@ -174,7 +174,10 @@ class ProcTable:
         for g in groups:
             pids = [ p[1] for p in filter(lambda x: x[0] == g, pid_gid_map) ]
             if len(pids) > 1:
-                self.bundles.append(ProcessGroup(g, pids))
+                try:
+                    self.bundles.append(ProcessGroup(g, pids))
+                except EmptyBundle:
+                    pass
 
         for proc in psutil.process_iter():
             # do not process process groups
