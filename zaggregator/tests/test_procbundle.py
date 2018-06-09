@@ -8,7 +8,8 @@ import signal
 
 import zaggregator.utils as utils
 import zaggregator.tests as tests
-from zaggregator.procbundle import ProcBundle, ProcTable, ProcessGroup
+import zaggregator.procbundle as pb
+from zaggregator.procbundle import ProcBundle, ProcTable, ProcessGroup, LeafBundle
 from zaggregator.tests import cycle
 
 class TestProcBundle(tests.TestCase):
@@ -17,7 +18,7 @@ class TestProcBundle(tests.TestCase):
         bunch, myproc, psutilproc = tests.BunchProto.start(bname)
 
         bundle = ProcBundle(psutilproc)
-        self.assertTrue(bundle.bundle_name == bname)
+        self.assertTrue(bundle.bundle_name == "zaggregator.tests")
 
         bunch.stop()
 
@@ -111,6 +112,17 @@ class TestProcBundle(tests.TestCase):
 
         bunch.stop()
 
+    def test_Procbundle__find_meaningful_parent_leaf(self):
+        logging.debug("======= %s ======" % inspect.stack()[0][3])
+        bname = 'unittest-pfmp'
+        bunch, myproc, psutilproc = tests.BunchProto.start(bname, nchildren=1)
+
+        bundle = LeafBundle(psutilproc)
+        self.assertIsInstance(bundle, LeafBundle)
+        self.assertTrue(bundle.bundle_name == 'zaggregator.tests')
+
+        bunch.stop()
+
     def test_get_idle(self):
         logging.debug("======= %s ======" % inspect.stack()[0][3])
         p = ProcTable()
@@ -130,13 +142,20 @@ class TestProcBundle(tests.TestCase):
         bname = "unittest-gpcpb"
         bunch, myproc, psutilproc = tests.BunchProto.start(bname, nchildren=2, func=cycle)
         p = ProcTable()
+        time.sleep(10)
+        print(p.get_bundle_names())
+        for b in p.bundles:
+            print("{}:\t{}".format(b.bundle_name, b.proclist))
+        """
         bundle = p.get_bundle_by_name("test.sh")
+        print(bundle.__class__)
         bundle.set_cpu_percent()
         pcpu = bundle.get_cpu_percent()
         pcpu_threshold = 75
         if pcpu <= pcpu_threshold:
             print("pcpu value: {}".format(pcpu))
         self.assertTrue(pcpu > pcpu_threshold)
+        """
 
         bunch.stop()
 

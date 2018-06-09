@@ -6,7 +6,8 @@ import os
 import time
 import zaggregator.utils as utils
 
-DEFAULT_INTERVAL  = 0.3
+DEFAULT_INTERVAL  = 1.0
+interpreters = "python", "perl", "bash", "tcsh", "zsh"
 
 class EmptyBundle(Exception): pass
 
@@ -34,33 +35,58 @@ class _BundleCache:
                 #self.pcpu += proc.cpu_percent(interval=DEFAULT_INTERVAL)
 
 class ProcBundle:
-
     def __init__(self, proc):
         """ new ProcBundle from the process
         """
         self._setup()
         self.leader = [ proc ]
         self.append(proc)
-        list(map(self.append, proc.children()))
-        names = []
-        if os.uname().sysname == 'Darwin':
-            for p in self.proclist:
-                try:
-                    names.append(p.cmdline()[0])
-                except (psutil._exceptions.AccessDenied, IndexError,
-                        psutil.ProcessLookupError, psutil.AccessDenied):
-                    pass
-        else:
-            names = [ p.name() for p in  self.proclist ]
-        self.bundle_name = utils.reduce_sequence(names)
-        if len(self.bundle_name) < 3:
-            self.bundle_name = "{}:{}".format(self.proclist[0].username(),names[0])
+        list(map(self.append, proc.children(recursive=True)))
+        names = [ p.name() for p in  self.proclist ]
         self._collect_chain()
+        self._set_meaningful_leader()
 
     def _setup(self):
         self._collect_chain_hook = lambda x: True
         self.proclist = []
         self._cache = _BundleCache()
+
+    def _set_meaningful_leader(self):
+
+        def go_top(proc):
+            while proc and not utils.is_kernel_thread(proc) and proc in self.proclist:
+                proc = proc.parent()
+            return proc
+
+        def go_bottom(proc):
+            while proc and len(proc.children()) == 1:
+                proc = proc.children()[0]
+            return proc
+
+        lp = go_bottom(go_top(self.proclist[0]))
+        if lp:
+            self.leader = [ lp ]
+            self.bundle_name = self.name_from_cmdargs(lp)
+        #self.bundle_name = utils.reduce_sequence(names)
+
+    @staticmethod
+    def name_from_cmdargs(proc):
+        cline = proc.cmdline()
+        #print("-"*20)
+        #print(cline)
+        cline = list(filter(lambda x: not x.startswith("-"), cline))
+
+        def not_interpreter(word) -> bool:
+            """ singleton for simplier parsing """
+            for i in interpreters:
+                if word.find(i) > -1:
+                    return False
+            return True
+        items = ":".join(filter(None,filter(not_interpreter, cline)))
+        #print(items)
+        #items = os.path.basename(items)
+        return items
+
 
     def append(self, proc):
         self.proclist.append(proc)
@@ -84,12 +110,14 @@ class ProcBundle:
         proc = self.leader[-1]
 
         while utils.parent_has_single_child(proc):
-            try:
-                proc = proc.parent()
-                if not utils.is_kernel_thread(proc):
-                    self.append(proc)
-            except psutil.NoSuchProcess:
-                raise utils.ProcessGone
+            if not utils.is_kernel_thread(proc):
+                try:
+                    proc = proc.parent()
+                    if not utils.is_kernel_thread(proc):
+                        self.append(proc)
+                except psutil.NoSuchProcess:
+                    raise utils.ProcessGone
+            else: break
 
     def __str__(self):
         return "{} name={} hash: {:#x}>".format(self.__class__, self.bundle_name, hash(self))
@@ -139,13 +167,15 @@ class SingleProcess(ProcBundle):
         self._setup()
         self.leader = [ proc ]
         self.append(proc)
-        #self.proclist = [ proc ]
-        self.bundle_name = proc.name()
+        self.proclist = [ proc ]
+        self.bundle_name = ""
+        #self._collect_chain()
 
 class LeafBundle(SingleProcess):
     def __init__(self, proc):
         super().__init__(proc)
         self._collect_chain()
+        #self._set_meaningful_leader()
 
 class ProcessGroup(ProcBundle):
     def __init__(self, pgid, pidlist):
@@ -161,10 +191,11 @@ class ProcessGroup(ProcBundle):
             self.bundle_name = "kernel"
         else:
             if len(sorted(pidlist)) > 0:
-                self.leader = [psutil.Process(pid=sorted(pidlist)[0])]
-                self.bundle_name = self.leader[0].name()
+                self._set_meaningful_leader()
             else:
                 raise EmptyBundle
+        #self._collect_chain()
+        #self._set_meaningful_leader()
 
 
 class ProcTable:
@@ -184,8 +215,8 @@ class ProcTable:
                     pass
 
         for proc in psutil.process_iter():
-            # do not process process groups
             try:
+                # do not process already procesed processes ;)
                 if proc in self.bundled(): continue
 
                 # collect bundleable processes
