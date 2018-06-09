@@ -64,6 +64,7 @@ def is_proc_group_parent(proc) -> bool:
 
 def parent_has_single_child(proc) -> bool:
     try:
+        if not proc.parent(): return False
         return len(proc.parent().children()) == 1
     except psutil.NoSuchProcess:
         raise ProcessGone
@@ -97,3 +98,4 @@ def discovery_json(names):
         template["data"].append({ "{#PROCGROUP}": bn, })
     template["data"].append({ "{#PROCGROUP}": 'idle', })
     return json.dumps(template)
+
