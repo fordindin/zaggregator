@@ -9,19 +9,27 @@ import signal
 import zaggregator.utils as utils
 import zaggregator.tests as tests
 import zaggregator.procbundle as pb
-from zaggregator.procbundle import ProcBundle, ProcTable, ProcessGroup, LeafBundle
+from zaggregator.procbundle import ProcBundle, ProcTable, ProcessMirror
 from zaggregator.tests import cycle
 
 class TestProcBundle(tests.TestCase):
+
     def test_ProcessBundle_name(self):
         bname = 'unittest-pb'
         bunch, myproc, psutilproc = tests.BunchProto.start(bname)
 
-        bundle = ProcBundle(psutilproc)
-        self.assertTrue(bundle.bundle_name == "zaggregator.tests")
+        procs = psutilproc.children()
+        procs.append(psutilproc)
+        pt = ProcTable()
+        procs = [ ProcessMirror(p,pt) for p in procs ]
+        bundle = ProcBundle(procs, pt=pt)
+        self.assertTrue(bundle.bundle_name == bname)
 
         bunch.stop()
+    """
+        """
 
+"""
     # TODO: implement procsort check
     def test_ProcTable_procsort(self):
         logging.debug("======= %s ======" % inspect.stack()[0][3])
@@ -146,7 +154,8 @@ class TestProcBundle(tests.TestCase):
         print(p.get_bundle_names())
         for b in p.bundles:
             print("{}:\t{}".format(b.bundle_name, b.proclist))
-        """
+"""
+"""
         bundle = p.get_bundle_by_name("test.sh")
         print(bundle.__class__)
         bundle.set_cpu_percent()
@@ -157,8 +166,9 @@ class TestProcBundle(tests.TestCase):
         self.assertTrue(pcpu > pcpu_threshold)
         """
 
+"""
         bunch.stop()
-
+"""
 
 if __name__ == '__main__':
     run_test_module_by_name(__file__)

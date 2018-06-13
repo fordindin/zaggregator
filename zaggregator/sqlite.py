@@ -1,6 +1,6 @@
 import sqlite3
 
-db = sqlite3.connect(":memory")
+db = sqlite3.connect(":memory:")
 
 def __init__(db):
     create_table_str = """
@@ -32,10 +32,11 @@ def add_record(record):
         query = """
             INSERT INTO samples
             ( name, pcpu, memrss )
-            VALUES ({});""".format(",".join(record)
+            VALUES ({});""".format(",".join(record))
 
-        db.execute
-    else: raise BadRecord
+        #db.execute()
+    else:
+        raise BadRecord
 
 
 __init__(db)

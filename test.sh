@@ -59,5 +59,5 @@ _fkill(){
 
 trap _fkill 1 2 4 15
 unittests
-#asyncio_test
-#daemon_test
+asyncio_test
+daemon_test

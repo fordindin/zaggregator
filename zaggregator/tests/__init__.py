@@ -5,7 +5,11 @@ import random
 import psutil
 import string
 import os, time
+import sys
 from multiprocessing import Process
+
+VERBOSITY = 2
+HERE = os.path.abspath(os.path.dirname(__file__))
 
 class TestCase(unittest.TestCase):
 
@@ -115,19 +119,36 @@ def cycle():
     while True:
         pass
 
+def get_suite():
+    testmods = [os.path.splitext(x)[0] for x in os.listdir(HERE)
+                if x.endswith('.py') and x.startswith('test_') and not
+                x.startswith('test_memory_leaks')]
+    if "WHEELHOUSE_UPLOADER_USERNAME" in os.environ:
+        testmods = [x for x in testmods if not x.endswith((
+                    "osx", "posix", "linux"))]
+    suite = unittest.TestSuite()
+    for tm in testmods:
+        # ...so that the full test paths are printed on screen
+        tm = "zaggregator.tests.%s" % tm
+        suite.addTest(unittest.defaultTestLoader.loadTestsFromName(tm))
+    return suite
+
 def run_suite():
     _setup_tests()
     result = unittest.TextTestRunner(verbosity=VERBOSITY).run(get_suite())
     success = result.wasSuccessful()
     sys.exit(0 if success else 1)
 
+def _setup_tests():
+    pass
+
 def run_test_module_by_name(name):
-    # testmodules = [os.path.splitext(x)[0] for x in os.listdir(HERE)
-    #                if x.endswith('.py') and x.startswith('test_')]
+    testmodules = [os.path.splitext(x)[0] for x in os.listdir(HERE)
+                    if x.endswith('.py') and x.startswith('test_')]
     _setup_tests()
     name = os.path.splitext(os.path.basename(name))[0]
     suite = unittest.TestSuite()
     suite.addTest(unittest.defaultTestLoader.loadTestsFromName(name))
     result = unittest.TextTestRunner(verbosity=VERBOSITY).run(suite)
     success = result.wasSuccessful()
-    ig_mitigatorys.exit(0 if success else 1)
+    sys.exit(0 if success else 1)

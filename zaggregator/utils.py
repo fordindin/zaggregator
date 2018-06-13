@@ -6,6 +6,7 @@ import os
 import logging as log
 import psutil
 import json
+import zaggregator
 
 DEFAULT_FUZZY_THRESHOLD = 53
 class ProcessGone(Exception): pass
@@ -63,16 +64,22 @@ def is_proc_group_parent(proc) -> bool:
     return False
 
 def parent_has_single_child(proc) -> bool:
+    if not proc or not proc.parent: return False
     try:
-        if not proc.parent(): return False
+        parent = proc.parent()
+        if not parent: return False
         return len(proc.parent().children()) == 1
     except psutil.NoSuchProcess:
         raise ProcessGone
 
 
 def is_kernel_thread(proc) -> bool:
-    if len(proc.cmdline()) == 0:
-        return True
+    if isinstance(proc, psutil.Process):
+        if os.getpgid(proc.pid) == 0:
+            return True
+    elif isinstance(proc, zaggregator.ProcessMirror):
+        if proc._pgid == 0:
+            return True
     return False
 
 def is_leaf_process(proc) -> bool:
