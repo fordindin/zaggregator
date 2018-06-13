@@ -4,7 +4,7 @@ import zaggregator
 import time
 from zaggregator import sqlite
 
-delay = 1
+delay = 5
 loop = asyncio.get_event_loop()
 
 def collect_data(bundle) -> (str, int, int, float):
@@ -17,7 +17,18 @@ def zag_sampler_loop(lc):
 
     loop.call_later(delay, callback, lc)
     pt = zaggregator.ProcTable()
-    print(pt.get_bundle_names())
+    for n in pt.get_bundle_names():
+        b = pt.get_bundle_by_name(n)
+        sqlite.add_record(
+                (
+                    b.bundle_name,
+                    b.get_memory_info_rss(),
+                    b.get_memory_info_vms(),
+                    b.get_n_ctx_switches_vol(),
+                    b.get_n_ctx_switches_invol(),
+                    b.get_cpu_percent(),
+                    ))
+
     """
     map(lambda x: x.set_cpu_percent(), pt.get_bundle_names())
     # we chouldn't use asyncio.sleep here, because

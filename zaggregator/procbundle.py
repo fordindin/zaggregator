@@ -154,6 +154,27 @@ class ProcBundle:
             return os.path.basename(proc.cmdline()[0])
         return out.split()[0].strip(":")[:20]
 
+    def get_n_ctx_switches_vol(self) -> int:
+        return sum([p.ctx_vol for p in  self.proclist])
+
+    def get_n_ctx_switches_invol(self) -> int:
+        return sum([p.ctx_invol for p in  self.proclist])
+
+    def get_memory_info_rss(self) -> int:
+        """
+            returns sum of resident memory sizes for process bundle (in KB)
+        """
+        return sum([p.rss for p in  self.proclist])
+
+    def get_memory_info_vms(self) -> int:
+        """
+            returns sum of virtual memory sizes for process bundle (in KB)
+        """
+        return sum([p.vms for p in  self.proclist])
+
+    def get_cpu_percent(self) -> float:
+        return sum([p.pcpu for p in  self.proclist])
+
 
 # singleton to filter-out dead processes
 def alive_or_false(proc):

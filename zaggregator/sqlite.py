@@ -1,6 +1,6 @@
 import sqlite3
 
-db = sqlite3.connect(":memory:")
+db = sqlite3.connect("data.sqlite")
 
 def __init__(db):
     create_table_str = """
@@ -9,17 +9,20 @@ def __init__(db):
         samples (
             ts DATETIME DEFAULT CURRENT_TIMESTAMP,
             name TEXT,
-            pcpu REAL,
             memrss INT,
+            memvms INT,
             ctxvol INT,
-            ctxinvol INT
+            ctxinvol INT,
+            pcpu REAL
         );
         """;
     create_trigger = """
-        CREATE TRIGGER DELETE_TAIL
+        CREATE TRIGGER IF NOT EXISTS
+        DELETE_TAIL
         AFTER INSERT ON samples
         BEGIN
-            DELETE FROM samples WHERE ts not in (select ts from samples order by ts desc limit 10);
+            DELETE FROM samples WHERE ts not in (select ts from samples order by ts desc
+            limit 300);
         END;
     """
     db.execute(create_table_str)
@@ -31,10 +34,11 @@ def add_record(record):
     if len(record) != 3 and hasattr(record, "__iter__"):
         query = """
             INSERT INTO samples
-            ( name, pcpu, memrss )
-            VALUES ({});""".format(",".join(record))
+            ( name, memrss, memvms, ctxvol, ctxinvol, pcpu )
+            VALUES ('{}',{});""".format(record[0], ",".join(map(str, record[1:])))
 
-        #db.execute()
+        db.execute(query)
+        db.commit()
     else:
         raise BadRecord
 
