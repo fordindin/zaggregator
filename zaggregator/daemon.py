@@ -5,7 +5,7 @@ import time
 import setproctitle
 from zaggregator import sqlite
 
-delay = 5
+delay = 30
 loop = asyncio.get_event_loop()
 
 def collect_data(bundle) -> (str, int, int, float):
