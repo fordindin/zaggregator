@@ -7,9 +7,11 @@ checks = [ "pcpu", "rss", "vms", "ctxvol", "ctxinvol" ]
 
 
 def discover():
+    """ Returns bundles list in Zabbix autodiscovery JSON format """
     print(discovery_json(sqlite.get_bundle_names()))
 
 def check(opts):
+    """ Returns value for specified bundle and check type """
     bname, check = opts
     if check not in checks:
         eprint(
@@ -18,9 +20,8 @@ def check(opts):
         sys.exit(1)
     print(sqlite.get(bname, check))
 
-
-
-if __name__ == '__main__':
+def main(*args, **kwargs):
+    """ main module """
     parser = argparse.ArgumentParser(description='Zabbix aggregator client.')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-discover', action='store_true',
@@ -33,3 +34,7 @@ if __name__ == '__main__':
         discover()
     if args.bundle:
         check(args.bundle)
+
+
+if __name__ == '__main__':
+    main()

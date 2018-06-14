@@ -3,7 +3,8 @@ import sqlite3
 DBPATH="data.sqlite"
 db = None
 
-def __init__():
+def __init__() -> None:
+    """ Initalize sqlite dataabase """
     global db
     db = sqlite3.connect(DBPATH)
     create_table_str = """
@@ -33,7 +34,10 @@ def __init__():
 
 class BadRecord(Exception): pass
 
-def add_record(record):
+def add_record(record) -> None:
+    """
+        Add record into sqlite database
+    """
     if len(record) != 3 and hasattr(record, "__iter__"):
         query = """
             INSERT INTO samples
@@ -45,13 +49,19 @@ def add_record(record):
     else:
         raise BadRecord
 
-def get_bundle_names() -> list:
+def get_bundle_names() -> [str]:
+    """
+        Get list of bundle names from sqlite database
+    """
     query = """
         SELECT distinct(name) FROM samples;
         """
     return [ row[0] for row in db.execute(query) ]
 
-def get(bname, check):
+def get(bname:str, check:str):
+    """
+        Get value of `check' variable for bundle with name `bname'
+    """
     query = """
         SELECT {} from samples where name='{}' order by ts desc limit 1;
         """.format(check, bname)

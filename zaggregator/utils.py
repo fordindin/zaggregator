@@ -12,9 +12,16 @@ DEFAULT_FUZZY_THRESHOLD = 53
 class ProcessGone(Exception): pass
 
 def eprint(*args, **kwargs):
-        print(*args, file=sys.stderr, **kwargs)
+    """
+        Wrapper around built-in `print' function which allow to print
+        into sys.stderr instead of sys.stdout
+    """
+    print(*args, file=sys.stderr, **kwargs)
 
-def reduce_sequence(seq) -> list:
+def reduce_sequence(seq:list) -> str:
+    """
+        Reduce sequence of names to single name
+    """
     if len(seq) == 1: return seq[0]
 
     def single_pass(iseq):
@@ -35,7 +42,10 @@ def reduce_sequence(seq) -> list:
 
     return sp[0].strip("[]:- ")
 
-def fuzzy_match(a, b, threshold=DEFAULT_FUZZY_THRESHOLD) -> bool:
+def fuzzy_match(a:str, b:str, threshold=DEFAULT_FUZZY_THRESHOLD) -> bool:
+    """
+        Checks if there a fussy match between two strings
+    """
     score = fuzz.partial_ratio(a,b)
     log.debug("Fuzzy score: {} ({},{})".format(score, a, b))
     if score > threshold:
@@ -43,7 +53,10 @@ def fuzzy_match(a, b, threshold=DEFAULT_FUZZY_THRESHOLD) -> bool:
     else:
         return False
 
-def fuzzy_sequence_match(seq) -> bool:
+def fuzzy_sequence_match(seq:list) -> bool:
+    """
+        Checks if all strings in sequence are fuzzy match
+    """
     for i in range(len(seq)-1):
         match = fuzzy_match(seq[i],seq[i+1])
         if not match:
@@ -51,6 +64,9 @@ def fuzzy_sequence_match(seq) -> bool:
     return True
 
 def is_proc_group_parent(proc) -> bool:
+    """
+        Checks if process is a group parent
+    """
     if os.uname().sysname == 'Darwin':
         fproc_names = filter(lambda x: len(x.cmdline()) > 0, proc.children())
         procs_names = [ p.cmdline()[0] for p in fproc_names ]
@@ -67,6 +83,9 @@ def is_proc_group_parent(proc) -> bool:
     return False
 
 def parent_has_single_child(proc) -> bool:
+    """
+        Checks if process's parent has only one child
+    """
     if not proc or not proc.parent: return False
     try:
         parent = proc.parent()
@@ -77,6 +96,9 @@ def parent_has_single_child(proc) -> bool:
 
 
 def is_kernel_thread(proc) -> bool:
+    """
+        Checks if process is a kernel process/thread
+    """
     if isinstance(proc, psutil.Process):
         if os.getpgid(proc.pid) == 0:
             return True
@@ -86,6 +108,10 @@ def is_kernel_thread(proc) -> bool:
     return False
 
 def is_leaf_process(proc) -> bool:
+    """
+        Checks if process has no children
+    """
+
     try:
         if len(proc.children()) == 0 and len(proc.parent().children()) == 1:
                 return True
@@ -94,15 +120,24 @@ def is_leaf_process(proc) -> bool:
         raise ProcessGone
 
 def is_proc_in_bundle(proc, bundle) -> bool:
+    """
+        Checks if process in ProcBundle
+    """
     return (proc in bundle.proclist)
 
 def is_proc_similar_to(proc1, proc2) -> bool:
+    """
+        Checks if two processes are similar
+    """
     if fuzzy_match(proc1.cmdline(),proc2.cmdline(), threshold=90) \
             and proc1.cwd() == proc2.cwd():
                 return True
     return False
 
 def discovery_json(names):
+    """
+        Returns bundle names in Zabbix autodiscovery JSON format
+    """
     template = { "data" : [ ]}
     for bn in names:
         template["data"].append({ "{#PROCGROUP}": bn, })

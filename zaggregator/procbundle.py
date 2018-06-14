@@ -10,7 +10,17 @@ DEFAULT_INTERVAL  = 1.0
 interpreters = "python", "perl", "bash", "tcsh", "zsh"
 
 class ProcessMirror:
-    def __init__(self, proc, proctable):
+    """
+        Class provides cachable and transparent copy of psutil.Process
+        with some fields overwritten to avoid direct calling of
+        psutil.Process methods, as they are inconsistent for dead processes
+
+    """
+    def __init__(self, proc: psutil.Process, proctable):
+        """
+            Class constructor
+        """
+
         self._proc, self._pt = proc, proctable
         parent = proc.parent()
         if parent:
@@ -39,7 +49,10 @@ class ProcessMirror:
     def __repr__(self):
         return self.__str__()
 
-    def __getattribute__(self, name):
+    def __getattribute__(self, name: str):
+        """
+            Masquerade psutil.Process's fields and methods
+        """
         if name.startswith("_"):
             return object.__getattribute__(self, name)
         elif name == "alive":
@@ -63,11 +76,19 @@ class ProcessMirror:
             return object.__getattribute__(self, name)
 
     def set_pcpu(self, value):
+        """
+            CPU percent values cannot be cached, so we need this
+            trick to set it for all ProcessMirrors in one pass
+        """
         self.pcpu = value
 
 class EmptyBundle(Exception): pass
 
 class ProcBundle:
+    """
+        Class represents bundle or group of processes associated
+        by there process group ID and child-parent relations
+    """
     def __init__(self, proclist, pt=None):
 
         self.proctable = pt
@@ -126,15 +147,24 @@ class ProcBundle:
         else:
             self.bundle_name = self.name_from_cmdargs(self.leader)
 
-    def append(self, proc):
+    def append(self, proc: ProcessMirror):
+        """
+            Append ProcessMirror to curent ProcBundle's processes list
+        """
         self.proclist.append(proc)
 
     def merge(self, bundle):
+        """
+            Merge ProcBundle with current one
+        """
         self.proclist.extend(bundle.proclist)
         self.proctable.bundles.remove(bundle)
 
     @staticmethod
-    def name_from_cmdargs(proc):
+    def name_from_cmdargs(proc: ProcessMirror):
+        """
+            Choses and sets name for the ProcBundle
+        """
         if utils.is_kernel_thread(proc): return "kernel"
         cline = list(filter(lambda x: not x.startswith("-"), proc.cmdline()))
 
@@ -155,40 +185,60 @@ class ProcBundle:
         return out.split()[0].strip(":")[:20]
 
     def get_n_ctx_switches_vol(self) -> int:
+        """
+            Returns sum of voluntary context switches for all processes
+            in the current bundle
+        """
         return sum([p.ctx_vol for p in  self.proclist])
 
     def get_n_ctx_switches_invol(self) -> int:
+        """
+            Returns sum of involuntary context switches for all processes
+            in the current bundle
+        """
         return sum([p.ctx_invol for p in  self.proclist])
 
     def get_memory_info_rss(self) -> int:
         """
-            returns sum of resident memory sizes for process bundle (in KB)
+            Returns sum of resident memory sizes for all processes
+            in the current bundle
         """
         return sum([p.rss for p in  self.proclist])
 
     def get_memory_info_vms(self) -> int:
         """
-            returns sum of virtual memory sizes for process bundle (in KB)
+            Returns sum of virtual memory sizes for all processes
+            in the current bundle
         """
         return sum([p.vms for p in  self.proclist])
 
     def get_cpu_percent(self) -> float:
+        """
+            Returns sum of consumed CPU percent for all processes
+            in the current bundle
+        """
         return sum([p.pcpu for p in  self.proclist])
 
 
-# singleton to filter-out dead processes
 def alive_or_false(proc):
+    """ Singleton to filter-out dead processes """
     if proc.is_running():
         return proc
     return False
 
 def process_call_guard(func, *args, **kwargs):
+    """ Singleton to handle situation when process died
+        after registering, but before sampling """
+
     try:
         return func(*args, **kwargs)
     except psutil.NoSuchProcess:
         return False
 
 class ProcTable:
+    """
+        Class represents cached process table for the sampling period
+    """
     def __init__(self):
         self._procs = []
         # fill the self._procs with ProcessMirrors of psutil processes
@@ -235,37 +285,59 @@ class ProcTable:
 
 
     def _clear_expendable(self):
+        """ Clean up expendable processes list from bundled processes """
         list(map(lambda p: self._expendable.remove(p) if p in self.bundled() and p in
             self._expendable else None, self._expendable))
 
 
-    def mirrors_by_pgid(self, pgid):
+    def mirrors_by_pgid(self, pgid: int) -> [ProcessMirror]:
+        """ Returns ProcessMirrors by Process Group ID (pgid) """
         return list(filter(lambda x: x._pgid == pgid,  self._procs))
 
-    def mirror_by_pid(self, pid):
+    def mirror_by_pid(self, pid: int) -> ProcessMirror:
+        """ Returns ProcessMirrors by process pid """
         if pid in self.mirrors.keys():
             return self.mirrors[pid]
         else:
             return None
 
     def bundled(self) -> list:
+        """
+            Returns list of all ProcessMirrors in all registered ProcBundles
+        """
         ret = []
         for b in self.bundles:
             ret.extend(b.proclist)
         return ret
 
     def get_bundle_names(self) -> list:
+        """
+            Returns list of names of registered ProcBundles
+        """
         return [ b.bundle_name for b in self.bundles ]
 
-    def _get_bundles_by_name(self, name):
+    def _get_bundles_by_name(self, name: str):
+        """
+            Returns list of all registered bundles with the same name. In the
+            normal state there shouldn't be any duplicates in the regisered
+            Procbundle, so we need to get all the names to merge ProcBundles
+            with similar names. Should't be called outside of ProcTable internal
+            context.
+        """
         if name in self.get_bundle_names():
             return list(filter(lambda x: x.bundle_name == name, self.bundles))
         return None
 
-    def get_bundle_by_name(self, name):
+    def get_bundle_by_name(self, name: str):
+        """
+            Returns ProcBundle with desired name or None for non-existing bundles
+        """
         if name in self.get_bundle_names():
             return list(filter(lambda x: x.bundle_name == name, self.bundles))[0]
         return None
 
     def get_idle(self, interval=DEFAULT_INTERVAL):
+        """
+            TODO: refactor this
+        """
         return psutil.cpu_times_percent(interval=interval).idle
