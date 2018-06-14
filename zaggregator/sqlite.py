@@ -1,8 +1,11 @@
 import sqlite3
 
-db = sqlite3.connect("data.sqlite")
+DBPATH="data.sqlite"
+db = None
 
-def __init__(db):
+def __init__():
+    global db
+    db = sqlite3.connect(DBPATH)
     create_table_str = """
         CREATE TABLE
         IF NOT EXISTS
@@ -42,5 +45,18 @@ def add_record(record):
     else:
         raise BadRecord
 
+def get_bundle_names() -> list:
+    query = """
+        SELECT distinct(name) FROM samples;
+        """
+    return [ row[0] for row in db.execute(query) ]
 
-__init__(db)
+def get(bname, check):
+    query = """
+        SELECT {} from samples where name='{}' order by ts desc limit 1;
+        """.format(check, bname)
+    result = list(db.execute(query))
+    if len(result) > 0:
+        return result[0][0]
+
+__init__()
