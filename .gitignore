@@ -5,3 +5,4 @@ __pycache__
 *py[oc]
 test.log
 *.sqlite
+dist/*

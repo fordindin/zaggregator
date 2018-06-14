@@ -27,7 +27,6 @@ unittests(){
 }
 
 
-echo "Running daemon-mode tests"
 
 killtest()
 {
@@ -58,6 +57,9 @@ _fkill(){
 }
 
 trap _fkill 1 2 4 15
+echo "Running unittests"
 unittests
+echo "Running asyncio tests"
 asyncio_test
+echo "Running daemon-mode tests"
 daemon_test
