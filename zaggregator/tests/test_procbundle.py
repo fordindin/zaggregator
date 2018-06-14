@@ -6,11 +6,13 @@ import random
 import inspect
 import signal
 
+import zaggregator
 import zaggregator.utils as utils
 import zaggregator.tests as tests
 import zaggregator.procbundle as pb
 from zaggregator.procbundle import ProcBundle, ProcTable, ProcessMirror
 from zaggregator.tests import cycle
+zaggregator.procbundle.DEFAULT_INTERVAL=0.1
 
 class TestProcBundle(tests.TestCase):
 
@@ -26,21 +28,6 @@ class TestProcBundle(tests.TestCase):
         self.assertTrue(bundle.bundle_name == bname)
 
         bunch.stop()
-    """
-        """
-
-"""
-    # TODO: implement procsort check
-    def test_ProcTable_procsort(self):
-        logging.debug("======= %s ======" % inspect.stack()[0][3])
-        try:
-            table = ProcTable()
-            for b in table.bundles:
-                logging.debug("\n{} {}: {}".format(b.bundle_name, b.__class__.__name__, b.proclist))
-        except psutil._exceptions.AccessDenied as e:
-            logging.error(e)
-            logging.error("Some tests require root priveleges")
-        logging.debug("Total number of bundles: {}".format(len(table.bundles)))
 
     def test_ProcTable_get_bundle_names(self):
         logging.debug("======= %s ======" % inspect.stack()[0][3])
@@ -51,20 +38,7 @@ class TestProcBundle(tests.TestCase):
             logging.error(e)
             logging.error("Some tests require root priveleges")
 
-
-    def test_ProcBundle_append(self):
-        logging.debug("======= %s ======" % inspect.stack()[0][3])
-        bname = 'unittest-pba'
-        (bunch, myproc, psutilproc),(bunch2, myproc2, psutilproc2) = \
-            tests.BunchProto.start(bname),tests.BunchProto.start(bname)
-
-        bundle,bundle2 = ProcBundle(psutilproc),ProcBundle(psutilproc2)
-        bundle = bundle.append(bundle2.proclist[1])
-
-        self.assertTrue(utils.is_proc_in_bundle(bundle2.proclist[1], bundle))
-
-        bunch.stop()
-        bunch2.stop()
+    """
 
     def test_ProcBundle_merge(self):
         logging.debug("======= %s ======" % inspect.stack()[0][3])
@@ -73,9 +47,13 @@ class TestProcBundle(tests.TestCase):
                 tests.BunchProto.start(bname),
                 tests.BunchProto.start(bname))
 
-        bundle1,bundle2,bundle3 = ProcBundle(psutilproc1),ProcBundle(psutilproc2),ProcBundle(psutilproc3)
+        pt = ProcTable()
+        bundle1,bundle2,bundle3 = ( ProcBundle([ProcessMirror(psutilproc1, pt)]),
+                ProcBundle([ProcessMirror(psutilproc2, pt)]),
+                ProcBundle([ProcessMirror(psutilproc3, pt)]) )
         logging.debug(len(bundle1.proclist))
-        bundle1.merge([bundle2,bundle3])
+        bundle1.merge(bundle2)
+        bundle1.merge(bundle3)
         logging.debug(len(bundle1.proclist))
 
 
@@ -86,48 +64,19 @@ class TestProcBundle(tests.TestCase):
         bunch2.stop()
         bunch3.stop()
 
+    """
     def test_ProcBundle_stats(self):
         logging.debug("======= %s ======" % inspect.stack()[0][3])
         bname = 'unittest-pbs'
         bunch, myproc, psutilproc = tests.BunchProto.start(bname)
 
-        bundle = ProcBundle(psutilproc)
-        self.assertIsInstance(bundle.get_n_connections(), int)
-        self.assertIsInstance((bundle.get_n_fds()), int)
-        self.assertIsInstance(bundle.get_n_open_files(), int)
+        pt = ProcTable()
+        bundle = pt.get_bundle_by_name(pt.get_bundle_names()[0])
         self.assertIsInstance(bundle.get_n_ctx_switches_vol(), int)
         self.assertIsInstance(bundle.get_n_ctx_switches_invol(), int)
         self.assertIsInstance(bundle.get_memory_info_rss(), int)
+        self.assertIsInstance(bundle.get_memory_info_vms(), int)
         self.assertIsInstance(bundle.get_cpu_percent(), float)
-
-        bunch.stop()
-
-    def test_Procbundle_nopid(self):
-        logging.debug("======= %s ======" % inspect.stack()[0][3])
-        bname = 'unittest-np'
-        bunch, myproc, psutilproc = tests.BunchProto.start(bname)
-
-        bundle = ProcBundle(psutilproc)
-        rpid = random.randint(0, 1024)
-        while psutil.pid_exists(rpid):
-            rpid = random.randint(0, 1024)
-        pidlist = [ p.pid for p in psutilproc.children() ]
-        pgid = psutilproc.pid
-        pidlist.append(rpid)
-
-        bundle = ProcessGroup(pgid, pidlist)
-        self.assertIsInstance(bundle, ProcessGroup)
-
-        bunch.stop()
-
-    def test_Procbundle__find_meaningful_parent_leaf(self):
-        logging.debug("======= %s ======" % inspect.stack()[0][3])
-        bname = 'unittest-pfmp'
-        bunch, myproc, psutilproc = tests.BunchProto.start(bname, nchildren=1)
-
-        bundle = LeafBundle(psutilproc)
-        self.assertIsInstance(bundle, LeafBundle)
-        self.assertTrue(bundle.bundle_name == 'zaggregator.tests')
 
         bunch.stop()
 
@@ -148,27 +97,25 @@ class TestProcBundle(tests.TestCase):
         logging.debug("======= %s ======" % inspect.stack()[0][3])
 
         bname = "unittest-gpcpb"
+        procname = "sh:./test.sh"
         bunch, myproc, psutilproc = tests.BunchProto.start(bname, nchildren=2, func=cycle)
         p = ProcTable()
-        time.sleep(10)
-        print(p.get_bundle_names())
+        time.sleep(1)
+        #print(p.get_bundle_names())
+        """
         for b in p.bundles:
             print("{}:\t{}".format(b.bundle_name, b.proclist))
-"""
-"""
-        bundle = p.get_bundle_by_name("test.sh")
-        print(bundle.__class__)
-        bundle.set_cpu_percent()
+        """
+        bundle = p.get_bundle_by_name(procname)
         pcpu = bundle.get_cpu_percent()
+        #print(bundle.__class__)
         pcpu_threshold = 75
         if pcpu <= pcpu_threshold:
             print("pcpu value: {}".format(pcpu))
         self.assertTrue(pcpu > pcpu_threshold)
-        """
 
-"""
+
         bunch.stop()
-"""
 
 if __name__ == '__main__':
     run_test_module_by_name(__file__)
