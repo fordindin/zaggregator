@@ -3,6 +3,9 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+with open("requirements.txt", "r") as fh:
+    requirements = list(filter(lambda x: x!= "", fh.read().split('\n')))
+
 setuptools.setup(
     name="zaggregator",
     version="0.0.1",
@@ -12,10 +15,24 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/fordindin/zaggregator",
-    packages=setuptools.find_packages(),
     classifiers=(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: BSD License",
         "Operating System :: OS Independent",
     ),
+    keywords="zabbix monitoring",
+    python_requires='>=3',
+    install_requires=requirements,
+    packages=setuptools.find_packages(exclude=['contrib', 'docs', 'tests*', 'venv', 'misc', 'build', 'dist']),
+    zip_safe=True,
+    entry_points={
+        'console_scripts': [
+            'zaggregator = zaggregator.daemon:start',
+            'zcheck = zaggregator.client:main',
+        ],},
+    data_files=[
+        ('/var/run/zaggregator', []),
+        ('/usr/share/zaggregator', ['misc/zaggregator.service', 'README.md', 'LICENSE']),
+            ],
+
 )
