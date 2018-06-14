@@ -6,3 +6,5 @@ __pycache__
 test.log
 *.sqlite
 dist/*
+build/*
+*.egg-info
