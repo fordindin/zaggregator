@@ -8,7 +8,7 @@ with open("requirements.txt", "r") as fh:
 
 setuptools.setup(
     name="zaggregator",
-    version="0.0.1",
+    version="0.0.2",
     author="Denis Barov",
     author_email="dindin+zaggregator@dindin.ru",
     description="Per-process stat monitoring solution for Zabbix",
