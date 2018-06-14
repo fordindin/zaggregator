@@ -1,0 +1,14 @@
+[Unit]
+Description=Zaggregator daemon
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/run/zaggregator
+ExecStart=/usr/local/bin/zaggregator
+Restart=on-failure
+# or always, on-abort, etc
+
+[Install]
+WantedBy=multi-user.target
