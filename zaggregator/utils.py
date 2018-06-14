@@ -2,7 +2,7 @@
 
 from difflib import SequenceMatcher
 from fuzzywuzzy import fuzz, StringMatcher
-import os
+import os, sys
 import logging as log
 import psutil
 import json
@@ -10,6 +10,9 @@ import zaggregator
 
 DEFAULT_FUZZY_THRESHOLD = 53
 class ProcessGone(Exception): pass
+
+def eprint(*args, **kwargs):
+        print(*args, file=sys.stderr, **kwargs)
 
 def reduce_sequence(seq) -> list:
     if len(seq) == 1: return seq[0]
