@@ -1,6 +1,6 @@
 import sqlite3
 
-DBPATH="data.sqlite"
+DBPATH="/var/run/zaggregator/zaggregator.sqlite"
 db = None
 
 def __init__() -> None:
