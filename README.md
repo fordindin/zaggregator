@@ -19,4 +19,6 @@ pip install zaggregator
 cp /usr/share/zaggregator/zaggregator.service /etc/systemd/system/
 systemctl enable zaggregator
 systemctl start zaggregator
+cp /usr/share/zaggregator/zaggregator.conf /etc/zabbix/zabbix_agentd.d/
+service zabbix-agent restart
 ```
