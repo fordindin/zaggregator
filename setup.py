@@ -12,11 +12,11 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/fordindin/zaggregator",
-    classifiers=(
+    classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: BSD License",
         "Operating System :: OS Independent",
-    ),
+    ],
     keywords="zabbix monitoring",
     python_requires='>=3',
     install_requires=['fuzzywuzzy>=0.16.0', 'psutil>=5.4.5', 'python-Levenshtein>=0.12.0', 'setproctitle>=1.1.10'],
@@ -29,7 +29,7 @@ setuptools.setup(
         ],},
     data_files=[
         ('/var/run/zaggregator', []),
-        ('/usr/share/zaggregator', ['misc/zaggregator.service', 'README.md', 'LICENSE']),
+        ('/usr/share/zaggregator', ['misc/zaggregator.service', 'misc/zaggregator.conf', 'README.md', 'LICENSE',]),
             ],
 
 )
