@@ -3,7 +3,7 @@ import sys
 from zaggregator import sqlite
 from zaggregator.utils import discovery_json, eprint
 
-checks = [ "pcpu", "rss", "vms", "ctxvol", "ctxinvol" ]
+checks = [ "pcpu", "memrss", "memvms", "ctxvol", "ctxinvol" ]
 
 
 def discover():
