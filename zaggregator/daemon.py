@@ -1,9 +1,15 @@
 import asyncio
-import sys
+import sys, os
 import zaggregator
 import time
 import setproctitle
 from zaggregator import sqlite
+
+
+if len(sys.argv) > 1:
+    pidfile = sys.argv[1]
+    with open(pidfile, "w") as fd:
+        fd.write(str(os.getpid()))
 
 delay = 30
 loop = asyncio.get_event_loop()
