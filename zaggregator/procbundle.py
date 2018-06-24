@@ -7,7 +7,7 @@ import time
 import zaggregator.utils as utils
 
 DEFAULT_INTERVAL  = 1.0
-interpreters = "python", "perl", "bash", "tcsh", "zsh"
+interpreters = "python", "perl", "bash", "tcsh", "zsh",
 
 class ProcessMirror:
     """
@@ -21,14 +21,26 @@ class ProcessMirror:
             Class constructor
         """
 
+        _dead = False
+        self._children = list()
+        self._parent = 0
+        parent = None
+
         self._proc, self._pt = proc, proctable
-        parent = proc.parent()
+        try:
+            self._pgid = os.getpgid(proc.pid)
+        except:
+            self._pgid = 0
+            _dead = True
+
+        if not _dead:
+            parent = proc.parent()
+
         if parent:
             self._parent = parent.pid
-        else:
-            self._parent = 0
-        self._children = [ p.pid for p in proc.children() ]
-        self._pgid = os.getpgid(proc.pid)
+
+        if not _dead:
+            self._children = [ p.pid for p in proc.children() ]
 
         with proc.oneshot():
             if proc.is_running():
@@ -39,7 +51,13 @@ class ProcessMirror:
                 self._cmdline = proc.cmdline()
                 self.pcpu = None
                 #self.pcpu += proc.cpu_percent(interval=DEFAULT_INTERVAL)
-            else: self = None
+            else:
+                self.rss = 0
+                self.vms = 0
+                self.ctx_vol = 0
+                self.ctx_invol = 0
+                self.cmdline = [ ]
+                self.pcpu = 0.0
 
     def __str__(self):
         return "<{} name={} pid={} _pgid={} alive={} >\n".format(self.__class__.__name__,
@@ -136,15 +154,21 @@ class ProcBundle:
 
         lp = go_bottom(go_top(self.proclist[0]))
 
+
         if lp:
             self.leader = lp
-            self.bundle_name = self.name_from_cmdargs(lp)
             children_pids = [ p.pid for p in lp._proc.children(recursive=True) ]
             for p in children_pids:
                 mirror = self.proctable.mirror_by_pid(p)
                 if mirror not in self.proctable.bundled():
                     self.append(mirror)
-        else:
+
+        try:
+            self.bundle_name = self._name_from_self_proclist()
+        except:
+            self.bundle_name = None
+
+        if not self.bundle_name:
             self.bundle_name = self.name_from_cmdargs(self.leader)
 
     def append(self, proc: ProcessMirror):
@@ -160,13 +184,36 @@ class ProcBundle:
         self.proclist.extend(bundle.proclist)
         self.proctable.bundles.remove(bundle)
 
+    def _name_from_self_proclist(self) -> str:
+        """
+            Generate bundle name from aquired proclist
+        """
+        out = ""
+        out = list(map(lambda x: x._cmdline, self.proclist ))
+        filter_titles = lambda x: len(x) > 1 and len(list(filter(lambda x: x == '', x))) > 0
+        # filter out all processes except proctitles
+        proctitles = [ x[0] for x in list(filter(filter_titles, out)) ]
+        out = utils.reduce_sequence(list(filter(lambda x: not x.startswith("sshd"),
+            proctitles)))
+        return out
+
     @staticmethod
     def name_from_cmdargs(proc: ProcessMirror):
         """
-            Choses and sets name for the ProcBundle
+            Choses name for the ProcBundle from ProcessMirror's
+            command line arguments
         """
+        _cmdline = proc._cmdline
         if utils.is_kernel_thread(proc): return "kernel"
-        cline = list(filter(lambda x: not x.startswith("-"), proc.cmdline()))
+        # special case for processes with set-up titles
+        # due some specific behaviour of /proc they are have
+        # empty strings in their cmdargs, for example:
+        # [ 'zaggregator', '', '', '', '' ]
+        # using this behaviour we are identifying such processes
+        # and returning proctitle itself
+        if len(_cmdline) > 1 and len(list(filter(lambda x: x == '', _cmdline))) > 0:
+            return _cmdline[0]
+        cline = list(filter(lambda x: not x.startswith("-"), _cmdline))
 
         def not_interpreter(word) -> bool:
             """ singleton for simplier parsing """
@@ -179,10 +226,11 @@ class ProcBundle:
             cline[0] =  os.path.basename(cline[0])
         out = ":".join(filter(None,filter(not_interpreter, cline)))
         try:
-            out.split()[0].strip(":")
+            out = out.split()[0].strip(":")[:20]
         except IndexError:
-            return os.path.basename(proc.cmdline()[0])
-        return out.split()[0].strip(":")[:20]
+            out = os.path.basename(_cmdline[0])
+
+        return out
 
     def get_n_ctx_switches_vol(self) -> int:
         """
