@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="zaggregator",
-    version="0.0.3",
+    version="0.0.4",
     author="Denis Barov",
     author_email="dindin+zaggregator@dindin.ru",
     description="Per-process stat monitoring solution for Zabbix",
@@ -30,6 +30,7 @@ setuptools.setup(
     data_files=[
         ('/var/run/zaggregator', []),
         ('/usr/share/zaggregator', ['misc/zaggregator.service', 'misc/zaggregator.conf', 'README.md', 'LICENSE',]),
+        ('/usr/share/zaggregator/init.d', ['misc/init.d/zaggregator'],),
             ],
 
 )
