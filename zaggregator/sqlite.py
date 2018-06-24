@@ -54,7 +54,7 @@ def get_bundle_names() -> [str]:
         Get list of bundle names from sqlite database
     """
     query = """
-        SELECT distinct(name) FROM samples;
+        SELECT DISTINCT(name) FROM samples;
         """
     return [ row[0] for row in db.execute(query) ]
 
@@ -63,7 +63,11 @@ def get(bname:str, check:str):
         Get value of `check' variable for bundle with name `bname'
     """
     query = """
-        SELECT {} from samples where name='{}' order by ts desc limit 1;
+        SELECT {} FROM samples
+        WHERE name='{}' AND
+            ( (julianday('now') - julianday(ts))*24*60*60 < 30 )
+        ORDER BY ts DESC
+        LIMIT 1;
         """.format(check, bname)
     result = list(db.execute(query))
     if len(result) > 0:
