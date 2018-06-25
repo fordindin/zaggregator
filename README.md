@@ -9,6 +9,8 @@ It consists of two parts:
 
 There is systemd service file for zaggregator-daemon, but for security reasons pip cannot install files into /etc, so you will need to do it manually. See [Install](#install) section for details.
 
+# Requirements
+python3
 
 # Install
 
