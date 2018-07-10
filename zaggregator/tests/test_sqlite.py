@@ -5,7 +5,7 @@ import sqlite3
 
 import zaggregator.sqlite as sqlite
 sqlite.DBPATH = ":memory:"
-sqlite.__init__()
+sqlite.__init__(sqlite.DBPATH)
 import zaggregator.tests as tests
 
 
