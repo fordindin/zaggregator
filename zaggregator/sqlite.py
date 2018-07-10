@@ -3,10 +3,10 @@ import sqlite3
 DBPATH="/var/run/zaggregator/zaggregator.sqlite"
 db = None
 
-def __init__() -> None:
+def __init__(dbpath=DBPATH) -> None:
     """ Initalize sqlite dataabase """
     global db
-    db = sqlite3.connect(DBPATH)
+    db = sqlite3.connect(dbpath)
     create_table_str = """
         CREATE TABLE
         IF NOT EXISTS
@@ -73,4 +73,8 @@ def get(bname:str, check:str):
     if len(result) > 0:
         return result[0][0]
 
-__init__()
+try:
+    __init__(dbpath=DBPATH)
+except sqlite3.OperationalError as e:
+    # late init
+    pass
