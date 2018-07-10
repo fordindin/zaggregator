@@ -5,9 +5,11 @@ import logging
 import os
 import time
 import zaggregator.utils as utils
+from operator import attrgetter
 
 DEFAULT_INTERVAL  = 1.0
 interpreters = "python", "perl", "bash", "tcsh", "zsh",
+metrics = "pcpu", "rss", "vms", "ctx_vol", "ctx_invol"
 
 class ProcessMirror:
     """
@@ -239,12 +241,16 @@ class ProcBundle:
         """
         return sum([p.ctx_vol for p in  self.proclist])
 
+    ctx_vol = get_n_ctx_switches_vol
+
     def get_n_ctx_switches_invol(self) -> int:
         """
             Returns sum of involuntary context switches for all processes
             in the current bundle
         """
         return sum([p.ctx_invol for p in  self.proclist])
+
+    ctx_invol = get_n_ctx_switches_invol
 
     def get_memory_info_rss(self) -> int:
         """
@@ -253,6 +259,8 @@ class ProcBundle:
         """
         return sum([p.rss for p in  self.proclist])
 
+    rss = get_memory_info_rss
+
     def get_memory_info_vms(self) -> int:
         """
             Returns sum of virtual memory sizes for all processes
@@ -260,12 +268,16 @@ class ProcBundle:
         """
         return sum([p.vms for p in  self.proclist])
 
+    vms = get_memory_info_vms
+
     def get_cpu_percent(self) -> float:
         """
             Returns sum of consumed CPU percent for all processes
             in the current bundle
         """
         return sum([p.pcpu for p in  self.proclist])
+
+    pcpu = get_cpu_percent
 
 
 def alive_or_false(proc):
@@ -389,3 +401,13 @@ class ProcTable:
             TODO: refactor this
         """
         return psutil.cpu_times_percent(interval=interval).idle
+
+    def get_top_10s(self) -> [ProcBundle]:
+        """
+            Get top10 bundles by each of the metrics and return list of bundles
+        """
+        tops = []
+        for m in metrics:
+            tops.extend(sorted(self.bundles, key=attrgetter(m), reverse=True)[:10])
+
+        return list(set(tops))
