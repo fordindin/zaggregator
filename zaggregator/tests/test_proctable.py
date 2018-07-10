@@ -90,5 +90,15 @@ class TestProcTable(tests.TestCase):
 
         bunch.stop()
 
+    def test_ProcTable_get_top_10s(self):
+        bname = 'unittest-ptgt10s'
+        nchildren = 5
+        bunch, myproc, psutilproc = tests.BunchProto.start(bname, nchildren=5)
+        pt = ProcTable()
+
+        #print(pt.get_top_10s)
+
+        bunch.stop()
+
 if __name__ == '__main__':
     tests.run_test_module_by_name(__file__)
