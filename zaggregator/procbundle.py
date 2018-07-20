@@ -3,104 +3,9 @@
 import psutil
 import logging
 import os
-import time
 import zaggregator.utils as utils
-from operator import attrgetter
-
-DEFAULT_INTERVAL  = 1.0
-interpreters = "python", "perl", "bash", "tcsh", "zsh",
-metrics = "pcpu", "rss", "vms", "ctx_vol", "ctx_invol"
-
-class ProcessMirror:
-    """
-        Class provides cachable and transparent copy of psutil.Process
-        with some fields overwritten to avoid direct calling of
-        psutil.Process methods, as they are inconsistent for dead processes
-
-    """
-    def __init__(self, proc: psutil.Process, proctable):
-        """
-            Class constructor
-        """
-
-        _dead = False
-        self._children = list()
-        self._parent = 0
-        parent = None
-
-        self._proc, self._pt = proc, proctable
-        try:
-            self._pgid = os.getpgid(proc.pid)
-        except:
-            self._pgid = 0
-            _dead = True
-
-        if not _dead:
-            parent = proc.parent()
-
-        if parent:
-            self._parent = parent.pid
-
-        if not _dead:
-            self._children = [ p.pid for p in proc.children() ]
-
-        with proc.oneshot():
-            if proc.is_running():
-                self.rss = proc.memory_info().rss
-                self.vms = proc.memory_info().vms
-                self.ctx_vol = proc.num_ctx_switches().voluntary
-                self.ctx_invol = proc.num_ctx_switches().involuntary
-                self._cmdline = proc.cmdline()
-                self.pcpu = None
-                #self.pcpu += proc.cpu_percent(interval=DEFAULT_INTERVAL)
-            else:
-                self.rss = 0
-                self.vms = 0
-                self.ctx_vol = 0
-                self.ctx_invol = 0
-                self.cmdline = [ ]
-                self.pcpu = 0.0
-
-    def __str__(self):
-        return "<{} name={} pid={} _pgid={} alive={} >\n".format(self.__class__.__name__,
-                self.name(), self.pid,
-                self._pgid, self.alive)
-
-    def __repr__(self):
-        return self.__str__()
-
-    def __getattribute__(self, name: str):
-        """
-            Masquerade psutil.Process's fields and methods
-        """
-        if name.startswith("_"):
-            return object.__getattribute__(self, name)
-        elif name == "alive":
-            return self._proc.is_running()
-        elif name == "pidm":
-            def __wrapper(x):
-                try:
-                    return self._pt.mirrors[x]
-                except KeyError:
-                    return False
-            return __wrapper
-        elif name == "parent":
-            return lambda: self.pidm(self._parent)
-        elif name == "children":
-            return lambda: [ self.pidm(p) for p in self._children ]
-        elif name == "cmdline":
-            return lambda: self._cmdline
-        elif hasattr(self._proc, name):
-            return getattr(self._proc, name)
-        else:
-            return object.__getattribute__(self, name)
-
-    def set_pcpu(self, value):
-        """
-            CPU percent values cannot be cached, so we need this
-            trick to set it for all ProcessMirrors in one pass
-        """
-        self.pcpu = value
+from zaggregator.procmirror import ProcessMirror
+from zaggregator.config import metrics, interpreters
 
 class EmptyBundle(Exception): pass
 
@@ -173,6 +78,14 @@ class ProcBundle:
         if not self.bundle_name:
             self.bundle_name = self.name_from_cmdargs(self.leader)
 
+        self.ctx_vol = self.get_n_ctx_switches_vol()
+        self.ctx_invol = self.get_n_ctx_switches_invol()
+        self.vms = self.get_memory_info_vms()
+        self.rss = self.get_memory_info_rss()
+        self.pcpu = self.get_cpu_percent()
+        """
+        """
+
     def append(self, proc: ProcessMirror):
         """
             Append ProcessMirror to curent ProcBundle's processes list
@@ -241,7 +154,6 @@ class ProcBundle:
         """
         return sum([p.ctx_vol for p in  self.proclist])
 
-    ctx_vol = get_n_ctx_switches_vol
 
     def get_n_ctx_switches_invol(self) -> int:
         """
@@ -250,7 +162,6 @@ class ProcBundle:
         """
         return sum([p.ctx_invol for p in  self.proclist])
 
-    ctx_invol = get_n_ctx_switches_invol
 
     def get_memory_info_rss(self) -> int:
         """
@@ -259,7 +170,6 @@ class ProcBundle:
         """
         return sum([p.rss for p in  self.proclist])
 
-    rss = get_memory_info_rss
 
     def get_memory_info_vms(self) -> int:
         """
@@ -268,7 +178,6 @@ class ProcBundle:
         """
         return sum([p.vms for p in  self.proclist])
 
-    vms = get_memory_info_vms
 
     def get_cpu_percent(self) -> float:
         """
@@ -277,7 +186,6 @@ class ProcBundle:
         """
         return sum([p.pcpu for p in  self.proclist])
 
-    pcpu = get_cpu_percent
 
 
 def alive_or_false(proc):
@@ -285,129 +193,3 @@ def alive_or_false(proc):
     if proc.is_running():
         return proc
     return False
-
-def process_call_guard(func, *args, **kwargs):
-    """ Singleton to handle situation when process died
-        after registering, but before sampling """
-
-    try:
-        return func(*args, **kwargs)
-    except psutil.NoSuchProcess:
-        return False
-
-class ProcTable:
-    """
-        Class represents cached process table for the sampling period
-    """
-    def __init__(self):
-        self._procs = []
-        # fill the self._procs with ProcessMirrors of psutil processes
-        _pcs = list(psutil.process_iter())
-        list(map(self._procs.append, map(ProcessMirror, _pcs, len(_pcs)*[self] )))
-        # set cpu_percent sampler
-        [ process_call_guard(p.cpu_percent) for p in self._procs ]
-        # wait for samples to collect
-        time.sleep(DEFAULT_INTERVAL)
-        # collect the samples
-        pcpu = [ process_call_guard(p.cpu_percent) for p in self._procs ]
-        # and map them to the corresponding ProcessMirror object
-        list(map(lambda a,b: a.set_pcpu(b), self._procs, pcpu))
-        # fill mirrors dict for faster mirror searching
-        self.mirrors = {}
-        for p in self._procs: self.mirrors.setdefault(p.pid, p)
-
-        self.bundles = []
-
-        # create expendable copy of the process list)
-        self._expendable = list(self._procs)
-
-        # collect the group id's of process groups
-        pgids = list(set([p._pgid for p in self._procs]))
-
-        #kernelProcs = list(filter(lambda x: utils.is_kernel_thread(x), self._expendable))
-        #list(map(self._expendable.remove, kernelProcs))
-
-        mirrors_by_pgid = list(map(self.mirrors_by_pgid, pgids))
-        mirrors_by_pgid.sort(key=lambda x: len(x), reverse=True)
-        while len(self._expendable) > 0:
-            for ms in mirrors_by_pgid:
-                    self.bundles.append(ProcBundle(ms, pt=self))
-                    self._clear_expendable()
-
-        uniq_names = list(set(self.get_bundle_names()))
-        for name in uniq_names:
-            n = self._get_bundles_by_name(name)
-            for b in n[1:]:
-                n[0].merge(b)
-
-        #    self.get_bundle_names()
-
-
-
-    def _clear_expendable(self):
-        """ Clean up expendable processes list from bundled processes """
-        list(map(lambda p: self._expendable.remove(p) if p in self.bundled() and p in
-            self._expendable else None, self._expendable))
-
-
-    def mirrors_by_pgid(self, pgid: int) -> [ProcessMirror]:
-        """ Returns ProcessMirrors by Process Group ID (pgid) """
-        return list(filter(lambda x: x._pgid == pgid,  self._procs))
-
-    def mirror_by_pid(self, pid: int) -> ProcessMirror:
-        """ Returns ProcessMirrors by process pid """
-        if pid in self.mirrors.keys():
-            return self.mirrors[pid]
-        else:
-            return None
-
-    def bundled(self) -> list:
-        """
-            Returns list of all ProcessMirrors in all registered ProcBundles
-        """
-        ret = []
-        for b in self.bundles:
-            ret.extend(b.proclist)
-        return ret
-
-    def get_bundle_names(self) -> list:
-        """
-            Returns list of names of registered ProcBundles
-        """
-        return [ b.bundle_name for b in self.bundles ]
-
-    def _get_bundles_by_name(self, name: str):
-        """
-            Returns list of all registered bundles with the same name. In the
-            normal state there shouldn't be any duplicates in the regisered
-            Procbundle, so we need to get all the names to merge ProcBundles
-            with similar names. Should't be called outside of ProcTable internal
-            context.
-        """
-        if name in self.get_bundle_names():
-            return list(filter(lambda x: x.bundle_name == name, self.bundles))
-        return None
-
-    def get_bundle_by_name(self, name: str):
-        """
-            Returns ProcBundle with desired name or None for non-existing bundles
-        """
-        if name in self.get_bundle_names():
-            return list(filter(lambda x: x.bundle_name == name, self.bundles))[0]
-        return None
-
-    def get_idle(self, interval=DEFAULT_INTERVAL):
-        """
-            TODO: refactor this
-        """
-        return psutil.cpu_times_percent(interval=interval).idle
-
-    def get_top_10s(self) -> [ProcBundle]:
-        """
-            Get top10 bundles by each of the metrics and return list of bundles
-        """
-        tops = []
-        for m in metrics:
-            tops.extend(sorted(self.bundles, key=attrgetter(m), reverse=True)[:10])
-
-        return list(set(tops))
