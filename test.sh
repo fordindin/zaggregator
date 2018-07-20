@@ -22,10 +22,10 @@ else
 fi
 set -u
 
+
 unittests(){
     $SUDO python3 -m zaggregator.tests
 }
-
 
 
 killtest()
