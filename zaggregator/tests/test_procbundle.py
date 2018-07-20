@@ -10,7 +10,9 @@ import zaggregator
 import zaggregator.utils as utils
 import zaggregator.tests as tests
 import zaggregator.procbundle as pb
-from zaggregator.procbundle import ProcBundle, ProcTable, ProcessMirror
+from zaggregator.procbundle import ProcBundle
+from zaggregator.proctable import ProcTable
+from zaggregator.procmirror import ProcessMirror
 from zaggregator.tests import cycle
 zaggregator.procbundle.DEFAULT_INTERVAL=0.1
 
@@ -108,7 +110,7 @@ class TestProcBundle(tests.TestCase):
             print("{}:\t{}".format(b.bundle_name, b.proclist))
         """
         bundle = p.get_bundle_by_name(bname)
-        pcpu = bundle.get_cpu_percent()
+        pcpu = bundle.pcpu
         #print(bundle.__class__)
         pcpu_threshold = 75
         if pcpu <= pcpu_threshold:

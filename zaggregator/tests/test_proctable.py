@@ -11,10 +11,13 @@ import zaggregator
 import zaggregator.utils as utils
 import zaggregator.tests as tests
 import zaggregator.procbundle as pb
-from zaggregator.procbundle import ProcBundle, ProcTable, ProcessMirror
+from zaggregator.procbundle import ProcBundle
+from zaggregator.proctable import ProcTable
+from zaggregator.procmirror import ProcessMirror
 from zaggregator.tests import cycle
+import zaggregator.config
 
-zaggregator.procbundle.DEFAULT_INTERVAL=0.1
+zaggregator.config.DEFAULT_INTERVAL=0.1
 
 class TestProcMirror(tests.TestCase):
     def test_ProcessMirror_alive(self):
@@ -96,7 +99,7 @@ class TestProcTable(tests.TestCase):
         bunch, myproc, psutilproc = tests.BunchProto.start(bname, nchildren=5)
         pt = ProcTable()
 
-        #print(pt.get_top_10s)
+        print(pt.get_top_10s())
 
         bunch.stop()
 

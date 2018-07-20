@@ -10,8 +10,9 @@ import logging
 
 import zaggregator.utils as utils
 import zaggregator.tests as tests
-from zaggregator.procbundle import ProcBundle, ProcessMirror
-from zaggregator.procbundle import ProcTable as ProcessTable
+from zaggregator.procbundle import ProcBundle
+from zaggregator.procmirror import ProcessMirror
+from zaggregator.proctable import ProcTable as ProcessTable
 
 class TestZaggregatorUtils(tests.TestCase):
 
