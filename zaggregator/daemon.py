@@ -16,9 +16,9 @@ loop = asyncio.get_event_loop()
 
 def collect_data(bundle) -> (str, int, int, float):
     """  Collect data """
-    return  (bundle.bundle_name, bundle.get_n_ctx_switches_vol(),
-            bundle.get_memory_info_rss(),
-            bundle.get_cpu_percent())
+    return  (bundle.bundle_name, bundle.ctx_vol,
+            bundle.rss,
+            bundle.pcpu)
 
 def zag_sampler_loop(lc):
     """ Main sampler loop """
@@ -31,11 +31,11 @@ def zag_sampler_loop(lc):
         sqlite.add_record(
                 (
                     b.bundle_name,
-                    b.get_memory_info_rss(),
-                    b.get_memory_info_vms(),
-                    b.get_n_ctx_switches_vol(),
-                    b.get_n_ctx_switches_invol(),
-                    b.get_cpu_percent(),
+                    b.rss,
+                    b.vms,
+                    b.ctx_vol,
+                    b.ctx_invol,
+                    b.pcpu,
                     ))
 
 def start() -> None:

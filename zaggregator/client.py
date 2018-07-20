@@ -2,9 +2,7 @@ import argparse
 import sys
 from zaggregator import sqlite
 from zaggregator.utils import discovery_json, eprint
-
-checks = [ "pcpu", "memrss", "memvms", "ctxvol", "ctxinvol" ]
-
+from zaggregator.config import metrics as checks
 
 def discover():
     """ Returns bundles list in Zabbix autodiscovery JSON format """
