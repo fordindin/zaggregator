@@ -27,7 +27,6 @@ class TestProcBundle(tests.TestCase):
         pt = ProcTable()
         procs = [ ProcessMirror(p,pt) for p in procs ]
         bundle = ProcBundle(procs, pt=pt)
-        print(bundle.bundle_name)
         self.assertTrue(bundle.bundle_name == bname)
 
         bunch.stop()
@@ -109,7 +108,7 @@ class TestProcBundle(tests.TestCase):
         for b in p.bundles:
             print("{}:\t{}".format(b.bundle_name, b.proclist))
         """
-        bundle = p.get_bundle_by_name(bname)
+        bundle = p.get_bundle_by_name(procname)
         pcpu = bundle.pcpu
         #print(bundle.__class__)
         pcpu_threshold = 75
@@ -129,7 +128,7 @@ class TestProcBundle(tests.TestCase):
         p = ProcTable()
         time.sleep(0.1)
         bundle = p.get_bundle_by_name(bname)
-        print(bundle._name_from_self_proclist())
+        #print(bundle._name_from_self_proclist())
         bunch.stop()
         """
     """

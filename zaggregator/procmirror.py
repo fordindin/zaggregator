@@ -2,6 +2,7 @@
 
 import psutil
 import logging
+import os
 
 class ProcessMirror:
     """
@@ -23,7 +24,7 @@ class ProcessMirror:
         self._proc, self._pt = proc, proctable
         try:
             self._pgid = os.getpgid(proc.pid)
-        except:
+        except Exception as e:
             self._pgid = 0
             _dead = True
 

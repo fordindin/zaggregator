@@ -7,7 +7,9 @@ import zaggregator.utils as utils
 from zaggregator.procmirror import ProcessMirror
 from zaggregator.config import metrics, interpreters
 
+
 class EmptyBundle(Exception): pass
+class BadProcess(Exception): pass
 
 class ProcBundle:
     """
@@ -44,13 +46,19 @@ class ProcBundle:
             else: break
 
         def go_top(proc):
+            iproc = proc
+
             while proc and not utils.is_kernel_thread(proc):
                 proc = proc.parent()
+
+            if not proc:
+                return iproc
+
             return proc
 
         def go_bottom(proc):
             if not proc:
-                return proc
+                return None
             while not (proc._pgid == self._pgid or len(proc.children()) > 1):
                 children = proc.children()
                 if len(children) > 0:
@@ -70,6 +78,8 @@ class ProcBundle:
                 if mirror not in self.proctable.bundled():
                     self.append(mirror)
 
+        self._set_bundle_name()
+        """
         try:
             self.bundle_name = self._name_from_self_proclist()
         except:
@@ -77,6 +87,7 @@ class ProcBundle:
 
         if not self.bundle_name:
             self.bundle_name = self.name_from_cmdargs(self.leader)
+        """
 
         self.ctx_vol = self.get_n_ctx_switches_vol()
         self.ctx_invol = self.get_n_ctx_switches_invol()
@@ -99,6 +110,19 @@ class ProcBundle:
         self.proclist.extend(bundle.proclist)
         self.proctable.bundles.remove(bundle)
 
+    def _set_bundle_name(self):
+        """
+            Set name for a bundle
+            - handle special cases for {cron, sshd, getty, etc. }
+            - check if leader has cmdargs or proctitle, and set
+              the bundle name with according method
+        """
+
+        # special cases
+
+        self.bundle_name = ProcBundle.name_from_cmdargs(self.leader)
+
+
     def _name_from_self_proclist(self) -> str:
         """
             Generate bundle name from aquired proclist
@@ -118,6 +142,8 @@ class ProcBundle:
             Choses name for the ProcBundle from ProcessMirror's
             command line arguments
         """
+        _candidate = None
+
         _cmdline = proc._cmdline
         if utils.is_kernel_thread(proc): return "kernel"
         # special case for processes with set-up titles
@@ -127,7 +153,13 @@ class ProcBundle:
         # using this behaviour we are identifying such processes
         # and returning proctitle itself
         if len(_cmdline) > 1 and len(list(filter(lambda x: x == '', _cmdline))) > 0:
-            return _cmdline[0]
+            if _cmdline[0].find(" ") < 0:
+                _candidate =  _cmdline[0]
+            else:
+                _candidate =  _cmdline[0].split()[0]
+
+            return _candidate.strip(":")
+
         cline = list(filter(lambda x: not x.startswith("-"), _cmdline))
 
         def not_interpreter(word) -> bool:
@@ -147,12 +179,19 @@ class ProcBundle:
 
         return out
 
+    def _get_attr(self, attr:str) -> int:
+        """
+            Returns summary for the attribute attr
+        """
+        filtered = filter(lambda x: x != None and getattr(x, attr) != None, self.proclist)
+        return sum([getattr(p, attr) for p in  filtered])
+
     def get_n_ctx_switches_vol(self) -> int:
         """
             Returns sum of voluntary context switches for all processes
             in the current bundle
         """
-        return sum([p.ctx_vol for p in  self.proclist])
+        return self._get_attr("ctx_vol")
 
 
     def get_n_ctx_switches_invol(self) -> int:
@@ -160,7 +199,7 @@ class ProcBundle:
             Returns sum of involuntary context switches for all processes
             in the current bundle
         """
-        return sum([p.ctx_invol for p in  self.proclist])
+        return self._get_attr("ctx_invol")
 
 
     def get_memory_info_rss(self) -> int:
@@ -168,7 +207,7 @@ class ProcBundle:
             Returns sum of resident memory sizes for all processes
             in the current bundle
         """
-        return sum([p.rss for p in  self.proclist])
+        return self._get_attr("rss")
 
 
     def get_memory_info_vms(self) -> int:
@@ -176,7 +215,7 @@ class ProcBundle:
             Returns sum of virtual memory sizes for all processes
             in the current bundle
         """
-        return sum([p.vms for p in  self.proclist])
+        return self._get_attr("vms")
 
 
     def get_cpu_percent(self) -> float:
@@ -184,12 +223,13 @@ class ProcBundle:
             Returns sum of consumed CPU percent for all processes
             in the current bundle
         """
-        return sum([p.pcpu for p in  self.proclist])
+        return self._get_attr("pcpu")
 
 
-
+'''
 def alive_or_false(proc):
     """ Singleton to filter-out dead processes """
     if proc.is_running():
         return proc
     return False
+'''

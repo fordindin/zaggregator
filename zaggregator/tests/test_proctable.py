@@ -99,7 +99,7 @@ class TestProcTable(tests.TestCase):
         bunch, myproc, psutilproc = tests.BunchProto.start(bname, nchildren=5)
         pt = ProcTable()
 
-        print(pt.get_top_10s())
+        top10 = pt.get_top_10s()
 
         bunch.stop()
 
