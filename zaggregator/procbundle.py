@@ -158,7 +158,7 @@ class ProcBundle:
             else:
                 _candidate =  _cmdline[0].split()[0]
 
-            return _candidate.strip(":")
+            return _candidate.strip(":-")
 
         cline = list(filter(lambda x: not x.startswith("-"), _cmdline))
 

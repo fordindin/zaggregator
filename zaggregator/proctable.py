@@ -114,15 +114,14 @@ class ProcTable:
         """
         return psutil.cpu_times_percent(interval=interval).idle
 
-    def get_top_10s(self) -> [ProcBundle]:
+    def get_top_5s(self) -> [ProcBundle]:
         """
             Get top10 bundles by each of the metrics and return list of bundles
         """
         tops = []
         for m in metrics:
-            print(m)
             func = lambda b: b.__getattribute__(m)
-            tops.extend(sorted(self.bundles, key=func, reverse=True)[:10])
+            tops.extend(sorted(self.bundles, key=func, reverse=True)[:5])
 
         return list(set(tops))
 

@@ -93,13 +93,14 @@ class TestProcTable(tests.TestCase):
 
         bunch.stop()
 
-    def test_ProcTable_get_top_10s(self):
-        bname = 'unittest-ptgt10s'
-        nchildren = 5
+    def test_ProcTable_get_top_5s(self):
+        bname = 'unittest-ptgt5s'
+        nchildren = 10
         bunch, myproc, psutilproc = tests.BunchProto.start(bname, nchildren=5)
         pt = ProcTable()
 
-        top10 = pt.get_top_10s()
+        top5 = pt.get_top_5s()
+        self.assertTrue(len(top5) > 5)
 
         bunch.stop()
 
