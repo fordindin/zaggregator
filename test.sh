@@ -47,7 +47,7 @@ asyncio_test(){
 
 daemon_test(){
     echo "$(($DAEMON_WAIT-1)) cycles with real zaggregator server"
-    python3 -m zaggregator & testpid=$! && echo "PID: $testpid" && killtest DAEMON_WAIT &
+    python3 -X dev -m zaggregator & testpid=$! && echo "PID: $testpid" && killtest DAEMON_WAIT &
     wait
     echo ""
 }

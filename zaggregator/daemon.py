@@ -26,8 +26,7 @@ def zag_sampler_loop(lc):
 
     loop.call_later(delay, callback, lc)
     pt = zaggregator.ProcTable()
-    for n in pt.get_top_5s():
-        b = pt.get_bundle_by_name(n)
+    for b in pt.get_top_5s():
         sqlite.add_record(
                 (
                     b.bundle_name,
