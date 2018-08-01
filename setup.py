@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="zaggregator",
-    version="0.0.7",
+    version="0.0.8",
     author="Denis Barov",
     author_email="dindin+zaggregator@dindin.ru",
     description="Per-process stat monitoring solution for Zabbix",
