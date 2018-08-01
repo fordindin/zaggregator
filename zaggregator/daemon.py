@@ -11,7 +11,7 @@ if len(sys.argv) > 1:
     with open(pidfile, "w") as fd:
         fd.write(str(os.getpid()))
 
-delay = 30
+delay = 29
 loop = asyncio.get_event_loop()
 
 def collect_data(bundle) -> (str, int, int, float):

@@ -13,8 +13,8 @@ def __init__(dbpath=DBPATH) -> None:
         samples (
             ts DATETIME DEFAULT CURRENT_TIMESTAMP,
             name TEXT,
-            memrss INT,
-            memvms INT,
+            rss INT,
+            vms INT,
             ctxvol INT,
             ctxinvol INT,
             pcpu REAL
@@ -41,7 +41,7 @@ def add_record(record) -> None:
     if len(record) != 3 and hasattr(record, "__iter__"):
         query = """
             INSERT INTO samples
-            ( name, memrss, memvms, ctxvol, ctxinvol, pcpu )
+            ( name, rss, vms, ctxvol, ctxinvol, pcpu )
             VALUES ('{}',{});""".format(record[0], ",".join(map(str, record[1:])))
 
         db.execute(query)

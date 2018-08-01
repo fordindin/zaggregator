@@ -63,7 +63,7 @@
                             <snmp_community/>
                             <multiplier>0</multiplier>
                             <snmp_oid/>
-                            <key>ps.procstat[{#PROCGROUP}, memrss]</key>
+                            <key>ps.procstat[{#PROCGROUP}, rss]</key>
                             <delay>30</delay>
                             <history>90</history>
                             <trends>365</trends>
