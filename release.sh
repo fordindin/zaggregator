@@ -28,6 +28,6 @@ set -u
 version=$(grep 'version=' setup.py | cut -d= -f 2 | tr -d '",')
 
 git status | grep 'working tree clean' || ( echo "Clean working tree first (see 'git status' output)" && exit 1 )
-git tag zaggregator-version-release
+git tag zaggregator-${version}-release
 git push --tags
 python3 setup.py egg_info -Db "" sdist bdist_egg upload
